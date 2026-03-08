@@ -1,0 +1,181 @@
+%------------------------------------------------------------------------------
+% CV in Latex
+% Author : Charles Rambo
+% Based off of: https://github.com/sb2nov/resume and Jake's Resume on Overleaf
+% Most recently updated version may be found at https://github.com/fizixmastr 
+% License : MIT
+%------------------------------------------------------------------------------
+
+\documentclass[A4,11pt]{article}
+\usepackage{latexsym}
+\usepackage[empty]{fullpage}
+\usepackage{titlesec}
+\usepackage{marvosym}
+\usepackage[usenames,dvipsnames]{color}
+\usepackage{verbatim}
+\usepackage{enumitem}
+\usepackage[hidelinks]{hyperref}
+\usepackage[english]{babel}
+\usepackage{tabularx}
+\usepackage{tikz}
+\input{glyphtounicode}
+
+% serif
+ \usepackage{palatino}
+
+%-----PAGE SETUP---------------------------------------------------------------
+\addtolength{\oddsidemargin}{-1cm}
+\addtolength{\evensidemargin}{-1cm}
+\addtolength{\textwidth}{2cm}
+\addtolength{\topmargin}{-1cm}
+\addtolength{\textheight}{2cm}
+
+\urlstyle{same}
+
+\raggedbottom
+\raggedright
+\setlength{\tabcolsep}{0cm}
+
+% Sections formatting
+\titleformat{\section}{
+  \vspace{-4pt}\scshape\raggedright\large
+}{}{0em}{}[\color{black}\titlerule \vspace{-5pt}]
+
+% Ensure that .pdf is machine readable/ATS parsable
+\pdfgentounicode=1
+
+%-----CUSTOM COMMANDS FOR FORMATTING SECTIONS----------------------------------
+\newcommand{\CVItem}[1]{
+  \item\small{
+    {#1 \vspace{-2pt}}
+  }
+}
+
+\newcommand{\CVSubheading}[4]{
+  \vspace{-2pt}\item
+    \begin{tabular*}{0.97\textwidth}[t]{l@{\extracolsep{\fill}}r}
+      \textbf{#1} & #2 \\
+      \small#3 & \small #4 \\
+    \end{tabular*}\vspace{-7pt}
+}
+
+\newcommand{\CVSubSubheading}[2]{
+    \item
+    \begin{tabular*}{0.97\textwidth}{l@{\extracolsep{\fill}}r}
+      \text{\small#1} & \text{\small #2} \\
+    \end{tabular*}\vspace{-7pt}
+}
+
+\newcommand{\CVSubItem}[1]{\CVItem{#1}\vspace{-4pt}}
+
+\renewcommand\labelitemii{$\vcenter{\hbox{\tiny$\bullet$}}$}
+
+\newcommand{\CVSubHeadingListStart}{\begin{itemize}[leftmargin=0.5cm, label={}]}
+\newcommand{\CVSubHeadingListEnd}{\end{itemize}}
+\newcommand{\CVItemListStart}{\begin{itemize}}
+\newcommand{\CVItemListEnd}{\end{itemize}\vspace{-5pt}}
+
+%------------------------------------------------------------------------------
+% CV STARTS HERE  %
+%------------------------------------------------------------------------------
+\begin{document}
+
+%-----HEADING------------------------------------------------------------------
+\begin{minipage}[c]{0.05\textwidth}
+\-\
+\end{minipage}
+\begin{minipage}[c]{0.2\textwidth}
+\begin{tikzpicture}
+    \clip (0,0) circle (1.75cm);
+    \node at (0,-.7) {\includegraphics[width = 9cm]{portrait}}; 
+\end{tikzpicture}
+\hfill\vline\hfill
+\end{minipage}
+\begin{minipage}[c]{0.4\textwidth}
+    \textbf{\Huge \scshape{Charles Rambo}} \\ \vspace{1pt} 
+    \small{+1 123-456-7890} \\
+    \href{mailto:you@provider.com}{\underline{you@provider.com}}\\
+    \href{https://www.linkedin.com/in/charles-rambo/}{\underline{linkedin.com/in/charles-rambo}} \\
+    \href{https://github.com/fizixmastr}{\underline{github.com/fizixmastr}}
+\end{minipage}
+
+%-----EDUCATION----------------------------------------------------------------
+\section{Education}
+  \CVSubHeadingListStart
+    \CVSubheading
+      {{Master of Science $|$ \emph{\small{Photonics}}}}{Aug. 2019 -- May 2021}
+      {University of Eastern Finland}{Joensuu, Finland}
+    \CVSubheading
+      {{Bachelor of Arts $|$ \emph{\small{Major: Physics, Minor: Education}}}}{Aug. 2016 -- May 2018}
+      {Austin College}{Sherman, TX}
+  \CVSubHeadingListEnd
+
+%-----WORK EXPERIENCE----------------------------------------------------------
+\section{Work Experience}
+  \CVSubHeadingListStart
+    \CVSubheading
+      {Integration Engineering Intern}{June 2018 -- August 2019}
+      {Finisar Corp.}{Sherman, TX}
+      \CVItemListStart
+        \CVItem{Worked in ISO 4 cleanroom developing applications}
+      \CVItemListEnd
+    \CVSubheading
+      {Laboratory Assistant}{January 2016 -- July 2016}
+      {North Lake College}{Irving, TX}
+      \CVItemListStart
+        \CVItem{Inventoried and maintained Physics Department lab equipment}
+    \CVItemListEnd
+  \CVSubHeadingListEnd
+
+%-----PROJECTS AND RESEARCH----------------------------------------------------
+\section{Projects and Research}
+  \CVSubHeadingListStart
+    \CVSubheading
+      {{Project Title} $|$ \emph{\small{Technologies}}}{Period}
+      {Institution}{}
+  \CVSubHeadingListEnd
+
+%-----CONFERENCES AND PRESENTATIONS--------------------------------------------
+\section{Conferences and Presentations}
+  \CVSubHeadingListStart
+    \CVSubheading
+      {Presentation Title}{Date}
+      {Event Name}{}
+  \CVSubHeadingListEnd
+
+%-----HONORS AND AWARDS--------------------------------------------------------
+\section{Honors and Awards}
+  \CVSubHeadingListStart
+    \CVSubheading
+      {Award Name}{Date}
+      {Description}{}
+  \CVSubHeadingListEnd
+
+%-----TEACHING EXPERIENCE------------------------------------------------------
+\section{Teaching Experience}
+  \CVSubHeadingListStart
+    \CVSubheading
+      {Subject (Duration)}{Period}
+      {Institution}{Location}
+  \CVSubHeadingListEnd
+
+%-----COMMUNITY INVOLVEMENT----------------------------------------------------
+\section{Community Involvement}
+  \CVSubHeadingListStart
+    \CVSubheading
+      {Organization}{Period}
+      {Description}{Location}
+  \CVSubHeadingListEnd
+
+%-----SKILLS-------------------------------------------------------------------
+\section{Skills}
+ \begin{itemize}[leftmargin=0.5cm, label={}]
+    \small{\item{
+     \textbf{Languages}{: English (Native)} \\
+     \textbf{Programming}{: Python, MATLAB} \\
+     \textbf{Document Creation}{: Microsoft Office Suite, LaTeX} \\
+    }}
+ \end{itemize}
+    
+%------------------------------------------------------------------------------
+\end{document}

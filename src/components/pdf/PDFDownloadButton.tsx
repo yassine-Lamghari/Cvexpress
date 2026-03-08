@@ -1,0 +1,58 @@
+'use client';
+
+import { useState } from 'react';
+import { useCVStore } from '@/stores/cv-store';
+import { Download, Loader2 } from 'lucide-react';
+import { useTranslations } from '@/lib/i18n';
+
+const LATEX_API_URL = process.env.NEXT_PUBLIC_LATEX_API_URL || 'http://localhost:8000';
+
+export default function PDFDownloadButton() {
+  const { t } = useTranslations();
+  const { generatedOutput, selectedTemplate, cvData } = useCVStore();
+  const [downloading, setDownloading] = useState(false);
+
+  const handleDownload = async () => {
+    if (!generatedOutput?.latexCode) return;
+
+    const filename = `CV-${cvData.personalInfo.firstName}-${cvData.personalInfo.lastName}.pdf`;
+    setDownloading(true);
+
+    try {
+      const res = await fetch(`${LATEX_API_URL}/latex-download.php`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ latexCode: generatedOutput.latexCode, template: selectedTemplate, filename }),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({ error: 'Server error' }));
+        throw new Error(errData.error || `HTTP ${res.status}`);
+      }
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('LaTeX download failed:', err);
+      alert('PDF generation failed. Please try again.');
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  return (
+    <button
+      onClick={handleDownload}
+      disabled={!generatedOutput || downloading}
+      className="flex items-center gap-2 px-5 py-2.5 bg-gray-900 text-white rounded-md hover:bg-gray-800 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+    >
+      {downloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+      {downloading ? 'Compilation...' : t('results.downloadCV')}
+    </button>
+  );
+}
