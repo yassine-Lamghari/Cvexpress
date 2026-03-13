@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react';
 import { Send, Loader2, Sparkles } from 'lucide-react';
 import { useCVStore } from '@/stores/cv-store';
+import { LATEX_API_URL } from '@/lib/api-config';
 
 export default function AIEditBar() {
   const { generatedOutput, setGeneratedOutput, locale } = useCVStore();
@@ -18,7 +19,7 @@ export default function AIEditBar() {
     setError(null);
 
     try {
-      const res = await fetch('/api/edit/', {
+      const res = await fetch(`${LATEX_API_URL}/edit.php`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -82,7 +83,15 @@ export default function AIEditBar() {
         </button>
       </div>
       {error && (
-        <p className="text-xs text-red-500 mt-1.5 ml-6">{error}</p>
+        <div className="flex items-center gap-2 mt-1.5 ml-6">
+          <p className="text-xs text-red-500">{error}</p>
+          <button
+            onClick={handleSubmit}
+            className="text-xs text-gray-500 hover:text-gray-700 underline"
+          >
+            Retry
+          </button>
+        </div>
       )}
     </div>
   );

@@ -1,13 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { CVData, GeneratedOutput, BuilderStep, Locale, StyleOptions } from '@/types/cv';
-
-const defaultStyleOptions: StyleOptions = {
-  primaryColor: '#0E5484',
-  secondaryColor: '#333333',
-  fontSize: 'medium',
-  spacing: 'normal',
-};
+import { CVData, GeneratedOutput, BuilderStep, Locale } from '@/types/cv';
 
 const emptyCVData: CVData = {
   personalInfo: {
@@ -43,9 +36,6 @@ interface CVStore {
   selectedTemplate: string;
   locale: Locale;
 
-  // Style options
-  styleOptions: StyleOptions;
-
   // AI outputs
   generatedOutput: GeneratedOutput | null;
   isGenerating: boolean;
@@ -76,7 +66,8 @@ interface CVStore {
   removeSkill: (name: string) => void;
   addLanguage: (lang: CVData['languages'][0]) => void;
   removeLanguage: (name: string) => void;
-  setStyleOptions: (options: Partial<StyleOptions>) => void;
+  addCertification: (cert: CVData['certifications'][0]) => void;
+  removeCertification: (name: string) => void;
   reset: () => void;
 }
 
@@ -90,7 +81,6 @@ export const useCVStore = create<CVStore>()(
       currentStep: 1,
       selectedTemplate: 'professional',
       locale: 'fr',
-      styleOptions: defaultStyleOptions,
       generatedOutput: null,
       isGenerating: false,
       generationError: null,
@@ -226,9 +216,20 @@ export const useCVStore = create<CVStore>()(
           },
         })),
 
-      setStyleOptions: (options) =>
+      addCertification: (cert) =>
         set((state) => ({
-          styleOptions: { ...state.styleOptions, ...options },
+          cvData: {
+            ...state.cvData,
+            certifications: [...state.cvData.certifications, cert],
+          },
+        })),
+
+      removeCertification: (name) =>
+        set((state) => ({
+          cvData: {
+            ...state.cvData,
+            certifications: state.cvData.certifications.filter((c) => c.name !== name),
+          },
         })),
 
       reset: () =>
@@ -239,7 +240,6 @@ export const useCVStore = create<CVStore>()(
           rawSkills: '',
           currentStep: 1,
           selectedTemplate: 'professional',
-          styleOptions: defaultStyleOptions,
           generatedOutput: null,
           isGenerating: false,
           generationError: null,
@@ -247,7 +247,7 @@ export const useCVStore = create<CVStore>()(
     }),
     {
       name: 'cv-builder-storage',
-      version: 2,
+      version: 3,
       migrate: (persisted: unknown, version: number) => {
         const state = persisted as Record<string, unknown>;
         if (version < 2) {
@@ -256,6 +256,17 @@ export const useCVStore = create<CVStore>()(
             state.selectedTemplate = 'professional';
           }
           state.generatedOutput = null;
+        }
+        if (version < 3) {
+          // Ensure cvData has all required arrays for structured forms
+          const cv = (state.cvData || {}) as Record<string, unknown>;
+          if (!Array.isArray(cv.experiences)) cv.experiences = [];
+          if (!Array.isArray(cv.education)) cv.education = [];
+          if (!Array.isArray(cv.stages)) cv.stages = [];
+          if (!Array.isArray(cv.languages)) cv.languages = [];
+          if (!Array.isArray(cv.certifications)) cv.certifications = [];
+          if (!Array.isArray(cv.skills)) cv.skills = [];
+          state.cvData = cv;
         }
         return state;
       },

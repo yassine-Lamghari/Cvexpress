@@ -3,13 +3,13 @@
 import { useCVStore } from '@/stores/cv-store';
 import { useTranslations } from '@/lib/i18n';
 import { Check } from 'lucide-react';
-import Image from 'next/image';
 import { templateList } from '@/templates/registry';
 
-const templates = templateList.map((t) => ({
-  id: t.id,
-  image: `/templates/${t.id}.jpeg`,
-}));
+const accentColors: Record<string, string> = {
+  professional: '#0E5484',
+  charles: '#333333',
+  rezume: '#0000FF',
+};
 
 export default function Step4Template() {
   const { t } = useTranslations();
@@ -25,10 +25,11 @@ export default function Step4Template() {
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        {templates.map((tmpl) => {
+        {templateList.map((tmpl) => {
           const isSelected = selectedTemplate === tmpl.id;
           const nameKey = `templates.${tmpl.id}` as string;
           const descKey = `templates.${tmpl.id}Desc` as string;
+          const accent = accentColors[tmpl.id] || '#0E5484';
 
           return (
             <button
@@ -40,16 +41,19 @@ export default function Step4Template() {
                   : 'border-gray-200 hover:border-gray-400 hover:shadow-md'
               }`}
             >
-              {/* Template image preview */}
-              <div className="bg-gray-50 relative">
-                <div className="relative aspect-[3/4] w-full">
-                  <Image
-                    src={tmpl.image}
-                    alt={tmpl.id}
-                    fill
-                    className="object-cover object-top"
-                    sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 20vw"
-                  />
+              {/* Template CSS preview */}
+              <div className="bg-gray-50 relative aspect-[3/4] w-full flex items-center justify-center p-4">
+                <div className="bg-white border border-gray-200 rounded-sm p-3 w-full h-full flex flex-col">
+                  <div className="h-2 w-14 rounded-sm mb-2" style={{ backgroundColor: accent }} />
+                  <div className="h-1 w-20 rounded-sm bg-gray-300 mb-0.5" />
+                  <div className="h-1 w-14 rounded-sm bg-gray-200 mb-3" />
+                  <div className="flex-1 space-y-1.5">
+                    <div className="h-0.5 w-full bg-gray-100" />
+                    <div className="h-0.5 w-full bg-gray-100" />
+                    <div className="h-0.5 w-3/4 bg-gray-100" />
+                    <div className="h-0.5 w-full bg-gray-100" />
+                    <div className="h-0.5 w-2/3 bg-gray-100" />
+                  </div>
                 </div>
                 {isSelected && (
                   <div className="absolute top-2 right-2 w-6 h-6 bg-gray-900 rounded-full flex items-center justify-center">

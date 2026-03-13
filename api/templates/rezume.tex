@@ -32,7 +32,7 @@
 
 \usepackage[normalem]{ulem} % provides "\ul" (uline) command which will break at line breaks
 
-\usepackage[english]{babel} % provides culturally determined typographical rules for wide range of languages
+%%BABEL_LANG%%
 %-----------------------------------------
 
 \input glyphtounicode % converts glyph names to unicode
@@ -131,74 +131,119 @@
 
 %-----------CONTACT DETAILS------------------
 \begin{tabular*}{\textwidth}{l@{\extracolsep{\fill}}r}
-  \textbf{\Huge Jane Doe \vspace{2pt}} & % row = 1, col = 1
-  Location: Anycity, Anystate, Anycountry \\ % row = 1, col = 2
-  \href{https://jane-doe.com}{\uline{jane-doe.com}} $|$ % row = 2, col = 1
-  \href{https://linkedin.com/in/jane-doe}{\uline{LinkedIn}} $|$ % row = 2, col = 1
-  \href{https://github.com/jane-doe}{\uline{GitHub}} & % row = 2, col = 1
-  Email: \href{mailto:jane.doe@anymail.com}{\uline{jane.doe@anymail.com}} $|$ % row = 2, col = 2
-  Mobile: 5555555555 \\ % row = 2, col = 2
+  \textbf{\Huge %%CANDIDATE_NAME%% \vspace{2pt}} & % row = 1, col = 1
+  Location: %%LOCATION%% \\ % row = 1, col = 2
+  \href{https://www.linkedin.com/in/%%LINKEDIN_HANDLE%%}{\uline{LinkedIn}} $|$ % row = 2, col = 1
+  \href{https://github.com/%%GITHUB_HANDLE%%}{\uline{GitHub}} & % row = 2, col = 1
+  Email: \href{mailto:%%EMAIL%%}{\uline{%%EMAIL%%}} $|$ % row = 2, col = 2
+  Mobile: %%PHONE%% \\ % row = 2, col = 2
 \end{tabular*}
 %--------------------------------------------
 
 
+%%BEGIN_SECTION_SUMMARY%%
 %-----------SUMMARY--------------------------
-\section{Summary}
+\section{%%SECTION_SUMMARY%%}
 \small{
-  Professional summary goes here.
+  %%SUMMARY_TEXT%%
 }
 %--------------------------------------------
+%%END_SECTION_SUMMARY%%
 
 
+%%BEGIN_SECTION_SKILLS%%
 %--------------SKILLS------------------------
-\section{Technical Skills}
+\section{%%SECTION_SKILLS%%}
   \resumeHeadingListStart{}
-    \resumeSectionType{Languages}{:}{JavaScript, PHP, Java, HTML, CSS}
-    \resumeSectionType{Frameworks}{:}{React.js, Angular, Express, Node.js}
-    \resumeSectionType{Libraries}{:}{Material, Redux, React Router}
-    \resumeSectionType{Databases}{:}{MongoDB, PostgreSQL}
-    \resumeSectionType{Dev Tools}{:}{Visual Studio Code, Git, Gitlab}
+    %% REPEAT for each skill category:
+    \resumeSectionType{Category}{:}{Skill1, Skill2, Skill3}
+    %% END REPEAT
   \resumeHeadingListEnd{}
 %--------------------------------------------
+%%END_SECTION_SKILLS%%
 
 
+%%BEGIN_SECTION_EXPERIENCE%%
 %-----------EXPERIENCE-----------------------
-\section{Experience}
+\section{%%SECTION_EXPERIENCE%%}
 \resumeHeadingListStart{}
-  \resumeQuadHeading{Job Title}{Period}
+  %% REPEAT for each experience entry:
+  \resumeQuadHeading{Job Title}{Start -- End}
   {Company}{Location}
     \resumeItemListStart{}
-      \resumeItem{Description of responsibilities and achievements.}
+      \resumeItem{Description of achievement or responsibility.}
     \resumeItemListEnd{}
+  %% END REPEAT
 \resumeHeadingListEnd{}
 %---------------------------------------------
+%%END_SECTION_EXPERIENCE%%
 
 
+%%BEGIN_SECTION_STAGES%%
+%-----------INTERNSHIPS-----------------------
+\section{%%SECTION_STAGES%%}
+\resumeHeadingListStart{}
+  %% REPEAT for each internship/stage:
+  \resumeQuadHeading{Internship Title}{Start -- End}
+  {Company}{Location}
+    \resumeItemListStart{}
+      \resumeItem{Description of achievement or responsibility.}
+    \resumeItemListEnd{}
+  %% END REPEAT
+\resumeHeadingListEnd{}
+%---------------------------------------------
+%%END_SECTION_STAGES%%
+
+
+%%BEGIN_SECTION_EDUCATION%%
 %-----------EDUCATION-------------------------
-\section{Education}
+\section{%%SECTION_EDUCATION%%}
   \resumeHeadingListStart{}
-    \resumeQuadHeading{University Name}{Location}
-    {Degree}{Period}
+    %% REPEAT for each education entry:
+    \resumeQuadHeading{Institution Name}{Location}
+    {Degree}{Start -- End}
+    %% END REPEAT
   \resumeHeadingListEnd{}
 %---------------------------------------------
+%%END_SECTION_EDUCATION%%
 
 
+%%BEGIN_SECTION_PROJECTS%%
 %-----------PROJECTS--------------------------
-\section{Projects}
+\section{%%SECTION_PROJECTS%%}
   \resumeHeadingListStart{}
+    %% REPEAT for each project:
     \resumeTrioHeading{Project Name}{Technologies}{Link}
       \resumeItemListStart{}
         \resumeItem{Project description.}
       \resumeItemListEnd{}
+    %% END REPEAT
   \resumeHeadingListEnd{}
 %--------------------------------------------
+%%END_SECTION_PROJECTS%%
 
 
+%%BEGIN_SECTION_CERTIFICATIONS%%
 %----------------CERTIFICATIONS----------------------
-\section{Certifications}
+\section{%%SECTION_CERTIFICATIONS%%}
   \resumeItemListStart{}
-    \resumeItem{Certification name}
+    %% REPEAT for each certification:
+    \resumeItem{Certification Name -- Issuer (Date)}
+    %% END REPEAT
   \resumeItemListEnd{}
 %--------------------------------------------
+%%END_SECTION_CERTIFICATIONS%%
+
+
+%%BEGIN_SECTION_LANGUAGES%%
+%-----------LANGUAGES------------------------
+\section{%%SECTION_LANGUAGES%%}
+  \resumeHeadingListStart{}
+    %% REPEAT for each language:
+    \resumeSectionType{Language}{:}{Level}
+    %% END REPEAT
+  \resumeHeadingListEnd{}
+%--------------------------------------------
+%%END_SECTION_LANGUAGES%%
 
 \end{document}

@@ -4,8 +4,7 @@ import { useState } from 'react';
 import { useCVStore } from '@/stores/cv-store';
 import { Download, Loader2 } from 'lucide-react';
 import { useTranslations } from '@/lib/i18n';
-
-const LATEX_API_URL = process.env.NEXT_PUBLIC_LATEX_API_URL || 'http://localhost:8000';
+import { LATEX_API_URL } from '@/lib/api-config';
 
 export default function PDFDownloadButton() {
   const { t } = useTranslations();

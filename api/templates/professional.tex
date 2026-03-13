@@ -1,10 +1,10 @@
 %-------------------------
-% Resume in Latex
+% Resume in Latex — Professional template
 % Author : Vaishanth
 % License : MIT
 %------------------------
 
-\documentclass[letterpaper,11pt]{article}
+\documentclass[a4paper,11pt]{article}
 
 \usepackage{latexsym}
 \usepackage[empty]{fullpage}
@@ -14,11 +14,11 @@
 \usepackage{verbatim}
 \usepackage{enumitem}
 \usepackage[hidelinks]{hyperref}
-\usepackage[english]{babel}
+%%BABEL_LANG%%
 \usepackage{tabularx}
 \usepackage{fontawesome5}
 \usepackage{multicol}
-\usepackage{graphicx}%\setmainfont{Times New Roman}
+\usepackage{graphicx}
 \setlength{\multicolsep}{-3.0pt}
 \setlength{\columnsep}{-1pt}
 \input{glyphtounicode}
@@ -33,6 +33,7 @@
 \definecolor{taggreen}{HTML}{00E278}
 \definecolor{SlateGrey}{HTML}{2E2E2E}
 \definecolor{LightGrey}{HTML}{666666}
+\definecolor{headingcolor}{rgb}{0.36, 0.54, 0.66}
 \colorlet{name}{black}
 \colorlet{tagline}{darkcolor}
 \colorlet{heading}{darkcolor}
@@ -52,8 +53,6 @@
 \addtolength{\topmargin}{-.7in}
 \addtolength{\textheight}{1.4in}
 \urlstyle{same}
-
-\definecolor{airforceblue}{rgb}{0.36, 0.54, 0.66}
 
 \raggedbottom
 \raggedright
@@ -133,107 +132,112 @@
 \begin{document}
 %----------HEADING----------
 
-
 \begin{center}
-    {\huge Full Name} \\ \vspace{2pt} 
-    {+1 (xxx) xxx xxxx} ~ 
+    {\huge %%CANDIDATE_NAME%%} \\ \vspace{2pt}
+    {%%PHONE%%} ~
     \small{-}
-    \href{[url to portfolio]}{\color{blue}{Portfolio}} ~ 
+    \href{mailto:%%EMAIL%%}{\color{blue}{%%EMAIL%%}} ~
     \small{-}
-    \href{mailto:[enter your email id]}{\color{blue}{xxxx@gmail.com}} ~ 
+    \href{https://www.linkedin.com/in/%%LINKEDIN_HANDLE%%}{\color{blue}{linkedin.com/in/%%LINKEDIN_HANDLE%%}} ~
     \small{-}
-    \href{[url to linkedin profile]}{ \color{blue}{linkedin.com/in/username}}  ~
-    \small{-}
-    \href{[url to github profile]}{ \color{blue}{github.com/username}} ~
+    \href{https://github.com/%%GITHUB_HANDLE%%}{\color{blue}{github.com/%%GITHUB_HANDLE%%}} ~
     \vspace{-7pt}
 \end{center}
 
+%%BEGIN_SECTION_EDUCATION%%
 %-----------EDUCATION-----------
-\section{\color{airforceblue}EDUCATION}
+\section{\color{headingcolor}%%SECTION_EDUCATION%%}
   \resumeSubHeadingListStart
+    %% REPEAT for each education entry:
     \resumeSubheading
-      {University 1}{Location, State, USA}
-      {Degree and Specialization}{Month Year - Month Year}
-    \vspace{-4pt}
-     \resumeSubheading
-      {University 2}{Location, State, USA}
-      {Degree and Specialization}{Month Year - Month Year}
+      {Institution Name}{Location}
+      {Degree and Specialization}{Start - End}
+    %% END REPEAT
   \resumeSubHeadingListEnd
   \vspace{-10pt}
+%%END_SECTION_EDUCATION%%
 
-%-----------PROGRAMMING SKILLS-----------
-\section{\color{airforceblue}TECHNICAL SKILLS}
+%%BEGIN_SECTION_SKILLS%%
+%-----------TECHNICAL SKILLS-----------
+\section{\color{headingcolor}%%SECTION_SKILLS%%}
  \begin{itemize}[leftmargin=0in, label={}]
     \small{\item{
-     \textbf{\normalsize{Programming Languages:}}{ \normalsize{Python, C++}} \\
+     %% REPEAT for each skill category:
+     \textbf{\normalsize{Category:}}{ \normalsize{Skill1, Skill2, Skill3}} \\
       \vspace{1.2pt}
-      
-     \textbf{\normalsize{Libraries and Tools:}}{ \normalsize{PyTorch,  Sklearn, Pandas, Numpy, OpenCV, Git, Docker}} \\
-      \vspace{1.2pt}
-      
-     \textbf{\normalsize{ML Architectures:}}{ \normalsize{CNN, YOLO, Transformers(BERT, LSTM), RAFT}}
-
-     % copy and paste above textbf block to add more 
+     %% END REPEAT
      }}
  \end{itemize}
  \vspace{-16pt}
- 
- %-----------EXPERIENCE-----------
-\section{\color{airforceblue}WORK EXPERIENCE}
+%%END_SECTION_SKILLS%%
+
+%%BEGIN_SECTION_EXPERIENCE%%
+%-----------EXPERIENCE-----------
+\section{\color{headingcolor}%%SECTION_EXPERIENCE%%}
   \resumeSubHeadingListStart
-
+    %% REPEAT for each experience entry:
     \resumeSubheading
-      {Job 1 Title}{} 
-      {Company Name, State, Country}{Month Year - Month Year}
+      {Job Title}{}
+      {Company Name, Location}{Start - End}
       \resumeItemListStart
-            \resumeItem{\normalsize{Lorem ipsum dolor sit amet, consectetur adipiscing elit.}}
-      \resumeItemListEnd  
-
-    \resumeSubheading
-      {Job 2 Title}{} 
-      {Company Name, State, Country}{Month Year - Month Year}
-      \resumeItemListStart
-            \resumeItem{\normalsize{Lorem ipsum dolor sit amet, consectetur adipiscing elit.}}
-      \resumeItemListEnd  
-
+            \resumeItem{\normalsize{Description of achievement or responsibility.}}
+      \resumeItemListEnd
+    %% END REPEAT
   \resumeSubHeadingListEnd
 \vspace{-12pt}
+%%END_SECTION_EXPERIENCE%%
 
+%%BEGIN_SECTION_STAGES%%
+%-----------INTERNSHIPS-----------
+\section{\color{headingcolor}%%SECTION_STAGES%%}
+  \resumeSubHeadingListStart
+    %% REPEAT for each internship/stage:
+    \resumeSubheading
+      {Internship Title}{}
+      {Company Name, Location}{Start - End}
+      \resumeItemListStart
+            \resumeItem{\normalsize{Description of achievement or responsibility.}}
+      \resumeItemListEnd
+    %% END REPEAT
+  \resumeSubHeadingListEnd
+\vspace{-12pt}
+%%END_SECTION_STAGES%%
 
- %-----------PROJECTS-----------
-\section{\color{airforceblue}PROJECTS}    
+%%BEGIN_SECTION_PROJECTS%%
+%-----------PROJECTS-----------
+\section{\color{headingcolor}%%SECTION_PROJECTS%%}
     \resumeItemListStart
         \vspace{0.5pt}
-        \resumeItem{\normalsize{\textbf{Project 1 title}, Description here.}}
+        %% REPEAT for each project:
+        \resumeItem{\normalsize{\textbf{Project Title}, Description here.}}
         \vspace{-5pt}
-        
-        \resumeItem{\normalsize{\textbf{Project 2 title}, Description here.}}
-        \vspace{-5pt}
-        
-    \resumeItemListEnd  
-   
+        %% END REPEAT
+    \resumeItemListEnd
  \vspace{-12pt}
+%%END_SECTION_PROJECTS%%
 
-%-----------Publications---------------
-\section{\color{airforceblue}PUBLICATIONS}
-    
+%%BEGIN_SECTION_CERTIFICATIONS%%
+%-----------CERTIFICATIONS---------------
+\section{\color{headingcolor}%%SECTION_CERTIFICATIONS%%}
   \resumeItemListStart
-    \resumeItem{\normalsize{Add Publication details here}}
+    %% REPEAT for each certification:
+    \resumeItem{\normalsize{Certification Name -- Issuer (Date)}}
     \vspace{-5pt}
-    
-  \resumeItemListEnd 
-      
+    %% END REPEAT
+  \resumeItemListEnd
 \vspace{-8pt}
+%%END_SECTION_CERTIFICATIONS%%
 
-%-----------EXTRACURRICULAR---------------
-\section{\color{airforceblue}EXTRACURRICULAR ACTIVITIES}
-    
-      \resumeItemListStart
-        \resumeItem{\normalsize{\textbf{Event Coordinator} in university Club - {Month Year - Month Year} }} 
-        \vspace{-5pt}
-        
-      \resumeItemListEnd 
-      
-\vspace{-12pt}
+%%BEGIN_SECTION_LANGUAGES%%
+%-----------LANGUAGES---------------
+\section{\color{headingcolor}%%SECTION_LANGUAGES%%}
+  \resumeItemListStart
+    %% REPEAT for each language:
+    \resumeItem{\normalsize{\textbf{Language}: Level}}
+    \vspace{-5pt}
+    %% END REPEAT
+  \resumeItemListEnd
+\vspace{-8pt}
+%%END_SECTION_LANGUAGES%%
 
 \end{document}

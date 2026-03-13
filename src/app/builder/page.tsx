@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { ArrowLeft, ArrowRight, Loader2, Sparkles } from 'lucide-react';
 import Navbar from '@/components/layout/Navbar';
@@ -11,6 +11,7 @@ import Step4Template from '@/components/builder/Step4Template';
 import Step5Results from '@/components/builder/Step5Results';
 import AdBanner from '@/components/ads/AdBanner';
 import { useCVStore } from '@/stores/cv-store';
+import { LATEX_API_URL } from '@/lib/api-config';
 import { useTranslations } from '@/lib/i18n';
 import type { BuilderStep } from '@/types/cv';
 
@@ -37,12 +38,15 @@ export default function BuilderPage() {
     setGenerationError(null);
 
     try {
-      const response = await fetch('/api/generate/', {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 120000);
+      const response = await fetch(`${LATEX_API_URL}/generate.php`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
         body: JSON.stringify({
           resume: rawResume,
-          skills: rawSkills + '\n' + cvData.skills.map((s) => s.name).join(', '),
+          skills: rawSkills + '\n' + (cvData.skills ?? []).map((s) => s.name).join(', '),
           jobOffer,
           locale,
           template: selectedTemplate,
@@ -57,16 +61,15 @@ export default function BuilderPage() {
         }),
       });
 
+      clearTimeout(timeoutId);
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Generation failed');
+        const errorData = await response.json().catch(() => ({}));
+        const detail = errorData.detail ? ` (${errorData.detail})` : '';
+        throw new Error((errorData.error || 'Generation failed') + detail);
       }
 
       const result = await response.json();
       const aiData = result.data;
-      console.log('[builder] aiData keys:', Object.keys(aiData || {}));
-      console.log('[builder] aiData.latexCode length:', aiData?.latexCode?.length ?? 'undefined');
-      console.log('[builder] aiData.latexCode first 200:', aiData?.latexCode?.substring?.(0, 200));
 
       setGeneratedOutput({
         adaptedCV: {
@@ -92,12 +95,15 @@ export default function BuilderPage() {
     }
   };
 
+  const hasStructuredExperience = (cvData.experiences ?? []).some((e) => e.jobTitle && e.company);
+  const hasStructuredEducation = (cvData.education ?? []).some((e) => e.degree && e.school);
+
   const canGoNext = () => {
     switch (currentStep) {
       case 1:
-        return cvData.personalInfo.firstName && cvData.personalInfo.lastName && rawResume.length > 20;
+        return cvData.personalInfo.firstName && cvData.personalInfo.lastName && (rawResume.length > 20 || hasStructuredExperience || hasStructuredEducation);
       case 2:
-        return rawSkills.length > 5 || cvData.skills.length > 0;
+        return rawSkills.length > 5 || (cvData.skills ?? []).length > 0;
       case 3:
         return jobOffer.length > 30;
       case 4:
@@ -144,7 +150,7 @@ export default function BuilderPage() {
 
           {/* Breadcrumb */}
           <nav className="text-xs text-gray-400 mb-6">
-            <span className="hover:text-gray-600 cursor-pointer">Accueil</span>
+            <a href="/" className="hover:text-gray-600 cursor-pointer">{t('nav.home')}</a>
             <span className="mx-2">/</span>
             <span className="text-gray-700 font-medium">{t('builder.title')}</span>
           </nav>
@@ -175,8 +181,9 @@ export default function BuilderPage() {
 
               {/* Error Message */}
               {generationError && (
-                <div className="bg-red-50 border border-red-200 rounded p-4 mb-6 text-red-700 text-sm">
-                  {generationError}
+                <div className="bg-red-50 border border-red-200 rounded p-4 mb-6 text-red-700 text-sm flex items-center justify-between">
+                  <span>{generationError}</span>
+                  <button onClick={handleGenerate} className="ml-4 shrink-0 text-xs font-medium underline hover:no-underline">{t('common.retry')}</button>
                 </div>
               )}
 
@@ -241,7 +248,7 @@ export default function BuilderPage() {
 
               {/* Steps widget */}
               <div className="bg-white border border-gray-200 rounded p-4">
-                <h3 className="text-xs font-bold text-gray-900 uppercase tracking-wider mb-3 pb-2 border-b border-gray-200">Étapes</h3>
+                <h3 className="text-xs font-bold text-gray-900 uppercase tracking-wider mb-3 pb-2 border-b border-gray-200">{t('builder.sidebarSteps')}</h3>
                 <ul className="space-y-1">
                   {[
                     { num: 1, label: t('builder.step1Title') },
@@ -268,7 +275,7 @@ export default function BuilderPage() {
                             ? 'bg-gray-200 text-gray-600'
                             : 'bg-gray-100 text-gray-300'
                         }`}>
-                          {step.num < currentStep ? '✓' : step.num}
+                          {step.num < currentStep ? 'âœ“' : step.num}
                         </span>
                         {step.label}
                       </button>
@@ -279,11 +286,11 @@ export default function BuilderPage() {
 
               {/* Tips widget */}
               <div className="bg-white border border-gray-200 rounded p-4">
-                <h3 className="text-xs font-bold text-gray-900 uppercase tracking-wider mb-3 pb-2 border-b border-gray-200">Conseils</h3>
+                <h3 className="text-xs font-bold text-gray-900 uppercase tracking-wider mb-3 pb-2 border-b border-gray-200">{t('builder.sidebarTips')}</h3>
                 <ul className="text-xs text-gray-500 space-y-2 leading-relaxed">
-                  <li>→ Plus vous détaillez votre parcours, meilleur sera le CV généré.</li>
-                  <li>→ Collez l&apos;offre d&apos;emploi complète pour un résultat optimal.</li>
-                  <li>→ Vous pouvez revenir sur une étape à tout moment.</li>
+                  <li>â†’ {t('builder.sidebarTip1')}</li>
+                  <li>â†’ {t('builder.sidebarTip2')}</li>
+                  <li>â†’ {t('builder.sidebarTip3')}</li>
                 </ul>
               </div>
 

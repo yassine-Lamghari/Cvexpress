@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { ArrowRight, ArrowLeft, Loader2, Sparkles } from 'lucide-react';
 import Navbar from '@/components/layout/Navbar';
@@ -12,6 +12,9 @@ import Step4Template from '@/components/builder/Step4Template';
 import Step5Results from '@/components/builder/Step5Results';
 import { useTranslations } from '@/lib/i18n';
 import { useCVStore } from '@/stores/cv-store';
+import { LATEX_API_URL } from '@/lib/api-config';
+import { useAuth } from '@/components/auth/AuthProvider';
+import { useSaveCV } from '@/lib/use-save-cv';
 import type { BuilderStep } from '@/types/cv';
 
 export default function HomePage() {
@@ -31,23 +34,29 @@ export default function HomePage() {
     setGenerationError,
     generationError,
   } = useCVStore();
+  const { user } = useAuth();
+  const { saveCV } = useSaveCV();
 
   const handleGenerate = async () => {
     setIsGenerating(true);
     setGenerationError(null);
 
     try {
-      const response = await fetch('/api/generate/', {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 120000);
+      const response = await fetch(`${LATEX_API_URL}/generate.php`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
         body: JSON.stringify({
           resume: rawResume,
-          skills: rawSkills + '\n' + cvData.skills.map((s) => s.name).join(', '),
+          skills: rawSkills + '\n' + (cvData.skills ?? []).map((s) => s.name).join(', '),
           jobOffer,
           locale,
           template: selectedTemplate,
           candidateName: `${cvData.personalInfo.firstName} ${cvData.personalInfo.lastName}`.trim(),
           personalTitle: cvData.personalInfo.title || '',
+          personalInfo: cvData.personalInfo,
           experiences: cvData.experiences,
           stages: cvData.stages,
           education: cvData.education,
@@ -56,9 +65,11 @@ export default function HomePage() {
         }),
       });
 
+      clearTimeout(timeoutId);
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Generation failed');
+        const errorData = await response.json().catch(() => ({}));
+        const detail = errorData.detail ? ` (${errorData.detail})` : '';
+        throw new Error((errorData.error || 'Generation failed') + detail);
       }
 
       const result = await response.json();
@@ -115,7 +126,7 @@ export default function HomePage() {
         ? aiData.certifications.map((c: Record<string, string>) => ({ name: c.name || '', issuer: c.issuer || '', date: c.date || '' }))
         : cvData.certifications;
 
-      setGeneratedOutput({
+      const output = {
         adaptedCV: {
           personalInfo: cvData.personalInfo,
           summary: aiData.summary || '',
@@ -129,7 +140,14 @@ export default function HomePage() {
         motivationLetter: aiData.motivationLetter || '',
         candidacyEmail: aiData.candidacyEmail || '',
         latexCode: aiData.latexCode || '',
-      });
+      };
+
+      setGeneratedOutput(output);
+
+      // Auto-save to Supabase if user is logged in
+      if (user) {
+        saveCV(undefined, output).catch(() => {});
+      }
 
       setCurrentStep(5);
     } catch (error) {
@@ -139,12 +157,15 @@ export default function HomePage() {
     }
   };
 
+  const hasStructuredExperience = (cvData.experiences ?? []).some((e) => e.jobTitle && e.company);
+  const hasStructuredEducation = (cvData.education ?? []).some((e) => e.degree && e.school);
+
   const canGoNext = () => {
     switch (currentStep) {
       case 1:
-        return cvData.personalInfo.firstName && cvData.personalInfo.lastName && rawResume.length > 20;
+        return cvData.personalInfo.firstName && cvData.personalInfo.lastName && (rawResume.length > 20 || hasStructuredExperience || hasStructuredEducation);
       case 2:
-        return rawSkills.length > 5 || cvData.skills.length > 0;
+        return rawSkills.length > 5 || (cvData.skills ?? []).length > 0;
       case 3:
         return jobOffer.length > 30;
       case 4:
@@ -205,8 +226,9 @@ export default function HomePage() {
 
             {/* Error */}
             {generationError && (
-              <div className="mb-6 p-4 rounded-lg bg-red-50 text-red-600 text-sm">
-                {generationError}
+              <div className="mb-6 p-4 rounded-lg bg-red-50 text-red-600 text-sm flex items-center justify-between">
+                <span>{generationError}</span>
+                <button onClick={handleGenerate} className="ml-4 shrink-0 text-xs font-medium underline hover:no-underline">{t('common.retry')}</button>
               </div>
             )}
 

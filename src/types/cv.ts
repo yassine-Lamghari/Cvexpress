@@ -66,13 +66,6 @@ export interface GeneratedOutput {
   latexCode?: string;
 }
 
-export interface StyleOptions {
-  primaryColor: string;
-  secondaryColor: string;
-  fontSize: 'small' | 'medium' | 'large';
-  spacing: 'compact' | 'normal' | 'relaxed';
-}
-
 export interface TemplateInfo {
   id: string;
   name: string;

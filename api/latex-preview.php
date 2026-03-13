@@ -10,9 +10,7 @@
  */
 
 header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type');
+require_once __DIR__ . '/cors.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(204);
@@ -82,11 +80,18 @@ try {
     $prevDir = getcwd();
     chdir($tmpDir);
     
+    // Set execution time limit to prevent DOS via long compilations
+    set_time_limit(30);
+    
     $cmd = PDFLATEX_BIN . ' -no-shell-escape -interaction=nonstopmode cv.tex 2>&1';
 
     $output = [];
     $returnCode = 0;
     exec($cmd, $output, $returnCode);
+    
+    // Run pdflatex a second time to resolve cross-references and aux files
+    $output2 = [];
+    exec($cmd, $output2, $returnCode);
     chdir($prevDir);
 
     $pdfFile = $tmpDir . DIRECTORY_SEPARATOR . 'cv.pdf';
