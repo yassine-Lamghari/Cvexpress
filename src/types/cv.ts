@@ -78,3 +78,11 @@ export interface TemplateInfo {
 export type Locale = 'fr' | 'en';
 
 export type BuilderStep = 1 | 2 | 3 | 4 | 5;
+
+export interface JobOffer {
+  id: string;
+  title: string;
+  company: string;
+  location: string;
+  description: string;
+}
