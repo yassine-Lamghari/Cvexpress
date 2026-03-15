@@ -114,5 +114,50 @@ export function useSaveCV() {
     if (lastSavedCvId.current === cvId) lastSavedCvId.current = null;
   }, [user]);
 
-  return { saveCV, loadCVs, loadCV, deleteCV, saving, saveStatus };
+const downloadCV = useCallback(async (cvId: string, title: string, template: string) => {       
+    if (!user) return false;
+
+    // Obtenir le code LaTeX sauvegardé
+    const { data: outputData } = await supabase
+      .from('generated_outputs')
+      .select('latex_code')
+      .eq('cv_id', cvId)
+      .eq('user_id', user.id)
+      .single();
+
+    if (!outputData?.latex_code) return false;
+    
+    try {
+      // Use the helper to get the correct API URL (handles NEXT_PUBLIC_LATEX_API_URL or defaults)
+      const apiUrl = process.env.NEXT_PUBLIC_LATEX_API_URL || 'http://localhost:8000';
+      const endpoint = `${apiUrl}/latex-download.php`;
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ latexCode: outputData.latex_code, template: template || 'professional' }),
+      });
+
+      if (!response.ok) throw new Error(`Erreur de génération du PDF: ${response.statusText}`);
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${title || 'CV'}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      return true;
+    } catch (err) {
+      console.error('Erreur lors du téléchargement du PDF:', err);
+      return false;
+    }
+  }, [user]);
+
+  return { saveCV, loadCVs, loadCV, deleteCV, downloadCV, saving, saveStatus };
 }
