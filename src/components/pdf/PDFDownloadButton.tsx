@@ -5,14 +5,23 @@ import { useCVStore } from '@/stores/cv-store';
 import { Download, Loader2 } from 'lucide-react';
 import { useTranslations } from '@/lib/i18n';
 import { LATEX_API_URL } from '@/lib/api-config';
+import { useAuth } from '@/components/auth/AuthProvider';
+import AuthModal from '@/components/auth/AuthModal';
 
 export default function PDFDownloadButton() {
   const { t } = useTranslations();
   const { generatedOutput, selectedTemplate, cvData } = useCVStore();
+  const { user } = useAuth();
   const [downloading, setDownloading] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
 
   const handleDownload = async () => {
     if (!generatedOutput?.latexCode) return;
+
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
 
     const filename = `CV-${cvData.personalInfo.firstName}-${cvData.personalInfo.lastName}.pdf`;
     setDownloading(true);
@@ -45,13 +54,22 @@ export default function PDFDownloadButton() {
   };
 
   return (
-    <button
-      onClick={handleDownload}
-      disabled={!generatedOutput || downloading}
-      className="flex items-center gap-2 px-5 py-2.5 bg-gray-900 text-white rounded-md hover:bg-gray-800 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-    >
-      {downloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-      {downloading ? 'Compilation...' : t('results.downloadCV')}
-    </button>
+    <>
+      <button
+        onClick={handleDownload}
+        disabled={!generatedOutput || downloading}
+        className="flex items-center gap-2 px-5 py-2.5 bg-gray-900 text-white rounded-md hover:bg-gray-800 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        {downloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+        {downloading ? 'Compilation...' : t('results.downloadCV')}
+      </button>
+
+      <AuthModal 
+        open={showAuthModal} 
+        onClose={() => setShowAuthModal(false)} 
+      />
+    </>
   );
 }
+
+
