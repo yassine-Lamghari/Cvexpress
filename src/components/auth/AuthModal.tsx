@@ -77,13 +77,24 @@ export default function AuthModal({ open, onClose }: AuthModalProps) {
             <span>Google</span>
           </button>
           
-          <button
+            <button
               onClick={() => handleOAuth('facebook')}
               disabled={loading}
               className="w-full flex items-center justify-center space-x-2 border border-gray-200 rounded-lg px-3 py-2.5 text-sm font-medium hover:bg-gray-50 transition-colors disabled:opacity-50 text-[#1877F2]"
             >
               <FaFacebook className="w-5 h-5" />
               <span>Facebook</span>
+            </button>
+          </div>
+
+          <div className="relative mb-4">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-200"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="bg-white px-2 text-gray-500">Ou</span>
+            </div>
+          </div>
 
         <form onSubmit={handleSubmit} className="space-y-3">
           {mode === 'signup' && (
