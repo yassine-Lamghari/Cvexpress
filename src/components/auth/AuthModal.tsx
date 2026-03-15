@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { X } from 'lucide-react';
 import { FcGoogle } from 'react-icons/fc';
-import { FaLinkedin } from 'react-icons/fa';
+import { FaFacebook } from 'react-icons/fa';
 import { useAuth } from './AuthProvider';
 import { useTranslations } from '@/lib/i18n';
 
@@ -43,7 +43,7 @@ export default function AuthModal({ open, onClose }: AuthModalProps) {
     }
   };
 
-  const handleOAuth = async (provider: 'google' | 'linkedin_oidc') => {
+  const handleOAuth = async (provider: 'google' | 'facebook') => {
     setError(null);
     setLoading(true);
     const result = await signInWithOAuth(provider);
@@ -78,23 +78,12 @@ export default function AuthModal({ open, onClose }: AuthModalProps) {
           </button>
           
           <button
-            onClick={() => handleOAuth('linkedin_oidc')}
-            disabled={loading}
-            className="w-full flex items-center justify-center space-x-2 border border-gray-200 rounded-lg px-3 py-2.5 text-sm font-medium hover:bg-gray-50 transition-colors disabled:opacity-50 text-[#0077b5]"
-          >
-            <FaLinkedin className="w-5 h-5" />
-            <span>LinkedIn</span>
-          </button>
-        </div>
-
-        <div className="relative mb-4">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-200"></div>
-          </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-white text-gray-500">Ou</span>
-          </div>
-        </div>
+              onClick={() => handleOAuth('facebook')}
+              disabled={loading}
+              className="w-full flex items-center justify-center space-x-2 border border-gray-200 rounded-lg px-3 py-2.5 text-sm font-medium hover:bg-gray-50 transition-colors disabled:opacity-50 text-[#1877F2]"
+            >
+              <FaFacebook className="w-5 h-5" />
+              <span>Facebook</span>
 
         <form onSubmit={handleSubmit} className="space-y-3">
           {mode === 'signup' && (
