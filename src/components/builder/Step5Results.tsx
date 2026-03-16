@@ -212,8 +212,7 @@ export default function Step5Results() {
                 <div className="bg-white shadow-lg border border-gray-200 overflow-hidden">
                   <ClickablePreview
                     latexCode={generatedOutput.latexCode}
-                    template={selectedTemplate || 'professional'}
-                    locale={locale}
+                    template={selectedTemplate || 'professional'}                    photo={cvData.personalInfo?.photo || ''}                    locale={locale}
                     onSectionClick={handleSectionClick}
                     activeSection={editingSection?.id}
                   />
@@ -296,7 +295,11 @@ export default function Step5Results() {
                   <div className="flex-1 min-w-0 flex flex-col">
                     <div className="bg-white shadow-lg border border-gray-200 overflow-hidden flex-1">
                       <div style={{ aspectRatio: '210 / 297' }}>
-                        <LatexCodePreview latexCode={generatedOutput.latexCode || ''} template={selectedTemplate || 'professional'} />
+                          <LatexCodePreview 
+                            latexCode={generatedOutput.latexCode || ''} 
+                            template={selectedTemplate || 'professional'} 
+                            photo={cvData.personalInfo?.photo || ''}
+                          />
                       </div>
                     </div>
                   </div>
@@ -306,7 +309,11 @@ export default function Step5Results() {
                   {generatedOutput.latexCode ? (
                     <div className="bg-white shadow-lg border border-gray-200 overflow-hidden">
                       <div style={{ aspectRatio: '210 / 297' }}>
-                        <LatexCodePreview latexCode={generatedOutput.latexCode} template={selectedTemplate || 'professional'} />
+                          <LatexCodePreview 
+                            latexCode={generatedOutput.latexCode} 
+                            template={selectedTemplate || 'professional'} 
+                            photo={cvData.personalInfo?.photo || ''}
+                          />
                       </div>
                     </div>
                   ) : (

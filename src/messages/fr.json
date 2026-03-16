@@ -145,7 +145,9 @@
     "charles": "Charles",
     "charlesDesc": "Photo circulaire, Palatino, A4, style académique européen",
     "rezume": "Rezume",
-    "rezumeDesc": "Source Sans Pro, sections bleues, style développeur moderne"
+    "rezumeDesc": "Source Sans Pro, sections bleues, style développeur moderne",
+    "modern_image": "Moderne avec Image",
+    "modern_imageDesc": "Template moderne basé sur Professional, avec intégration de photo de profil"
   },
   "common": {
     "loading": "Chargement...",

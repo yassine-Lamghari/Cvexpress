@@ -25,6 +25,14 @@ export const templateList: TemplateInfo[] = [
     tags: ['développeur', 'moderne', 'bleu'],
     primaryColor: '#0000FF',
   },
+  {
+    id: 'modern_image',
+    name: 'Moderne avec Image',
+    description: 'Template moderne basé sur Professional, avec intégration de photo de profil',
+    thumbnail: '/templates/professional-thumb.png',
+    tags: ['photo', 'moderne', 'professionnel'],
+    primaryColor: '#0E5484',
+  },
 ];
 
 export function getTemplateInfo(templateId: string): TemplateInfo | undefined {

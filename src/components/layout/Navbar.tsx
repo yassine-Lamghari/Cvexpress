@@ -1,12 +1,13 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Globe, User, LogOut, Settings, ChevronDown } from 'lucide-react';
+import { Globe, User, LogOut, Settings, ChevronDown, ListVideo, History } from 'lucide-react';
 import { useTranslations } from '@/lib/i18n';
 import { useCVStore } from '@/stores/cv-store';
 import { useAuth } from '@/components/auth/AuthProvider';
 import AuthModal from '@/components/auth/AuthModal';
 import SettingsModal from '@/components/auth/SettingsModal';
+import HistoryModal from '@/components/history/HistoryModal';
 
 export default function Navbar() {
   const { locale, t } = useTranslations();
@@ -14,6 +15,7 @@ export default function Navbar() {
   const { user, signOut, loading } = useAuth();
   const [authOpen, setAuthOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -97,6 +99,17 @@ export default function Navbar() {
                       
                       <button
                         onClick={() => {
+                          setHistoryOpen(true);
+                          setDropdownOpen(false);
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                      >
+                        <History className="w-4 h-4 text-gray-400" />
+                        Mes CVs
+                      </button>
+
+                      <button
+                        onClick={() => {
                           setSettingsOpen(true);
                           setDropdownOpen(false);
                         }}
@@ -134,6 +147,7 @@ export default function Navbar() {
       </header>
       <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} />
       <SettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      <HistoryModal open={historyOpen} onClose={() => setHistoryOpen(false)} />
     </>
   );
 }

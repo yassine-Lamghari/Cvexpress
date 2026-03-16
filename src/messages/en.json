@@ -145,7 +145,9 @@
     "charles": "Charles",
     "charlesDesc": "Circular photo, Palatino, A4, European academic style",
     "rezume": "Rezume",
-    "rezumeDesc": "Source Sans Pro, blue sections, modern developer style"
+    "rezumeDesc": "Source Sans Pro, blue sections, modern developer style",
+    "modern_image": "Modern with Image",
+    "modern_imageDesc": "Modern template based on Professional, with profile photo integration"
   },
   "common": {
     "loading": "Loading...",

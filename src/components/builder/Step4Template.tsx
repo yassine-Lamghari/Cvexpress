@@ -9,6 +9,7 @@ const accentColors: Record<string, string> = {
   professional: '#0E5484',
   charles: '#333333',
   rezume: '#0000FF',
+  modern_image: '#0E5484',
 };
 
 export default function Step4Template() {

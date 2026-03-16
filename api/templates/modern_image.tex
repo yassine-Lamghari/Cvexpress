@@ -1,0 +1,254 @@
+%-------------------------
+% Resume in Latex — Professional template
+% Author : Vaishanth
+% License : MIT
+%------------------------
+
+\documentclass[a4paper,11pt]{article}
+
+\usepackage{latexsym}
+\usepackage[empty]{fullpage}
+\usepackage{titlesec}
+\usepackage{marvosym}
+\usepackage[usenames,dvipsnames]{color}
+\usepackage{verbatim}
+\usepackage{enumitem}
+\usepackage[hidelinks]{hyperref}
+%%BABEL_LANG%%
+\usepackage{tabularx}
+\usepackage{fontawesome5}
+\usepackage{multicol}
+\usepackage{graphicx}
+\setlength{\multicolsep}{-3.0pt}
+\setlength{\columnsep}{-1pt}
+\input{glyphtounicode}
+
+\RequirePackage{tikz}
+\RequirePackage{xcolor}
+
+\definecolor{cvblue}{HTML}{0E5484}
+\definecolor{black}{HTML}{130810}
+\definecolor{darkcolor}{HTML}{0F4539}
+\definecolor{cvgreen}{HTML}{3BD80D}
+\definecolor{taggreen}{HTML}{00E278}
+\definecolor{SlateGrey}{HTML}{2E2E2E}
+\definecolor{LightGrey}{HTML}{666666}
+\definecolor{headingcolor}{rgb}{0.36, 0.54, 0.66}
+\colorlet{name}{black}
+\colorlet{tagline}{darkcolor}
+\colorlet{heading}{darkcolor}
+\colorlet{headingrule}{cvblue}
+\colorlet{accent}{darkcolor}
+\colorlet{emphasis}{SlateGrey}
+\colorlet{body}{LightGrey}
+
+%----------FONT OPTIONS----------
+\usepackage{CormorantGaramond}
+\usepackage{charter}
+
+% Adjust margins
+\addtolength{\oddsidemargin}{-0.6in}
+\addtolength{\evensidemargin}{-0.5in}
+\addtolength{\textwidth}{1.19in}
+\addtolength{\topmargin}{-.7in}
+\addtolength{\textheight}{1.4in}
+\urlstyle{same}
+
+\raggedbottom
+\raggedright
+\setlength{\tabcolsep}{0in}
+
+% Sections formatting
+\titleformat{\section}{
+  \vspace{-4pt}\scshape\raggedright\large\bfseries
+}{}{0em}{}[\color{black}\titlerule \vspace{-5pt}]
+
+% Ensure that generate pdf is machine readable/ATS parsable
+\pdfgentounicode=1
+
+%-------------------------
+% Custom commands
+\newcommand{\resumeItem}[1]{
+  \item\small{
+    {#1 \vspace{-1pt}}
+  }
+}
+
+\newcommand{\classesList}[4]{
+    \item\small{
+        {#1 #2 #3 #4 \vspace{-2pt}}
+  }
+}
+
+\newcommand{\resumeSubheading}[4]{
+  \vspace{-2pt}\item
+    \begin{tabular*}{1.0\textwidth}[t]{l@{\extracolsep{\fill}}r}
+      \textbf{\large#1} & \textbf{\small #2} \\
+      \textit{\large#3} & \textit{\small #4} \\
+      
+    \end{tabular*}\vspace{-7pt}
+}
+
+
+\newcommand{\resumeSingleSubheading}[4]{
+  \vspace{-2pt}\item
+    \begin{tabular*}{1.0\textwidth}[t]{l@{\extracolsep{\fill}}r}
+      \textbf{\large#1} & \textbf{\small #2} \\
+      
+    \end{tabular*}\vspace{-7pt}
+}
+
+\newcommand{\resumeSubSubheading}[2]{
+    \item
+    \begin{tabular*}{0.97\textwidth}{l@{\extracolsep{\fill}}r}
+      \textit{\small#1} & \textit{\small #2} \\
+    \end{tabular*}\vspace{-7pt}
+}
+
+
+\newcommand{\resumeProjectHeading}[2]{
+    \item
+    \begin{tabular*}{1.001\textwidth}{l@{\extracolsep{\fill}}r}
+      \small#1 & \textbf{\small #2}\\
+    \end{tabular*}\vspace{-7pt}
+}
+
+\newcommand{\resumeSubItem}[1]{\resumeItem{#1}\vspace{-4pt}}
+
+\renewcommand\labelitemi{$\vcenter{\hbox{\tiny$\bullet$}}$}
+\renewcommand\labelitemii{$\vcenter{\hbox{\tiny$\bullet$}}$}
+
+\newcommand{\resumeSubHeadingListStart}{\begin{itemize}[leftmargin=0.0in, label={}]}
+\newcommand{\resumeSubHeadingListEnd}{\end{itemize}}
+\newcommand{\resumeItemListStart}{\begin{itemize}[leftmargin=0.1in]}
+\newcommand{\resumeItemListEnd}{\end{itemize}\vspace{-5pt}}
+
+\newcommand\sbullet[1][.5]{\mathbin{\vcenter{\hbox{\scalebox{#1}{$\bullet$}}}}}
+
+%-------------------------------------------
+%%%%%%  RESUME STARTS HERE  %%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\begin{document}
+%----------HEADING----------
+
+\begin{minipage}[c]{0.75\textwidth}
+    {\huge %%CANDIDATE_NAME%%} \\ \vspace{2pt}
+    {%%PHONE%%} ~
+    \small{-}
+    \href{mailto:%%EMAIL%%}{\color{blue}{%%EMAIL%%}} ~
+    \small{-}
+    \href{https://www.linkedin.com/in/%%LINKEDIN_HANDLE%%}{\color{blue}{linkedin.com/in/%%LINKEDIN_HANDLE%%}} ~
+    \small{-}
+    \href{https://github.com/%%GITHUB_HANDLE%%}{\color{blue}{github.com/%%GITHUB_HANDLE%%}} ~
+\end{minipage}
+\begin{minipage}[c]{0.20\textwidth}
+    \begin{flushright}
+    \IfFileExists{photo.png}{
+        \includegraphics[width=2.5cm,height=2.5cm,keepaspectratio]{photo.png}
+    }{
+        \IfFileExists{photo.jpg}{
+            \includegraphics[width=2.5cm,height=2.5cm,keepaspectratio]{photo.jpg}
+        }{}
+    }
+    \end{flushright}
+\end{minipage}
+\vspace{-7pt}
+
+%%BEGIN_SECTION_EDUCATION%%
+%-----------EDUCATION-----------
+\section{\color{headingcolor}%%SECTION_EDUCATION%%}
+  \resumeSubHeadingListStart
+    %% REPEAT for each education entry:
+    \resumeSubheading
+      {Institution Name}{Location}
+      {Degree and Specialization}{Start - End}
+    %% END REPEAT
+  \resumeSubHeadingListEnd
+  \vspace{-10pt}
+%%END_SECTION_EDUCATION%%
+
+%%BEGIN_SECTION_SKILLS%%
+%-----------TECHNICAL SKILLS-----------
+\section{\color{headingcolor}%%SECTION_SKILLS%%}
+ \begin{itemize}[leftmargin=0in, label={}]
+    \small{\item{
+     %% REPEAT for each skill category:
+     \textbf{\normalsize{Category:}}{ \normalsize{Skill1, Skill2, Skill3}} \\
+      \vspace{1.2pt}
+     %% END REPEAT
+     }}
+ \end{itemize}
+ \vspace{-16pt}
+%%END_SECTION_SKILLS%%
+
+%%BEGIN_SECTION_EXPERIENCE%%
+%-----------EXPERIENCE-----------
+\section{\color{headingcolor}%%SECTION_EXPERIENCE%%}
+  \resumeSubHeadingListStart
+    %% REPEAT for each experience entry:
+    \resumeSubheading
+      {Job Title}{}
+      {Company Name, Location}{Start - End}
+      \resumeItemListStart
+            \resumeItem{\normalsize{Description of achievement or responsibility.}}
+      \resumeItemListEnd
+    %% END REPEAT
+  \resumeSubHeadingListEnd
+\vspace{-12pt}
+%%END_SECTION_EXPERIENCE%%
+
+%%BEGIN_SECTION_STAGES%%
+%-----------INTERNSHIPS-----------
+\section{\color{headingcolor}%%SECTION_STAGES%%}
+  \resumeSubHeadingListStart
+    %% REPEAT for each internship/stage:
+    \resumeSubheading
+      {Internship Title}{}
+      {Company Name, Location}{Start - End}
+      \resumeItemListStart
+            \resumeItem{\normalsize{Description of achievement or responsibility.}}
+      \resumeItemListEnd
+    %% END REPEAT
+  \resumeSubHeadingListEnd
+\vspace{-12pt}
+%%END_SECTION_STAGES%%
+
+%%BEGIN_SECTION_PROJECTS%%
+%-----------PROJECTS-----------
+\section{\color{headingcolor}%%SECTION_PROJECTS%%}
+    \resumeItemListStart
+        \vspace{0.5pt}
+        %% REPEAT for each project:
+        \resumeItem{\normalsize{\textbf{Project Title}, Description here.}}
+        \vspace{-5pt}
+        %% END REPEAT
+    \resumeItemListEnd
+ \vspace{-12pt}
+%%END_SECTION_PROJECTS%%
+
+%%BEGIN_SECTION_CERTIFICATIONS%%
+%-----------CERTIFICATIONS---------------
+\section{\color{headingcolor}%%SECTION_CERTIFICATIONS%%}
+  \resumeItemListStart
+    %% REPEAT for each certification:
+    \resumeItem{\normalsize{Certification Name -- Issuer (Date)}}
+    \vspace{-5pt}
+    %% END REPEAT
+  \resumeItemListEnd
+\vspace{-8pt}
+%%END_SECTION_CERTIFICATIONS%%
+
+%%BEGIN_SECTION_LANGUAGES%%
+%-----------LANGUAGES---------------
+\section{\color{headingcolor}%%SECTION_LANGUAGES%%}
+  \resumeItemListStart
+    %% REPEAT for each language:
+    \resumeItem{\normalsize{\textbf{Language}: Level}}
+    \vspace{-5pt}
+    %% END REPEAT
+  \resumeItemListEnd
+\vspace{-8pt}
+%%END_SECTION_LANGUAGES%%
+
+\end{document}

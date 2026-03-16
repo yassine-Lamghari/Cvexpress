@@ -30,7 +30,12 @@ export default function PDFDownloadButton() {
       const res = await fetch(`${LATEX_API_URL}/latex-download.php`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ latexCode: generatedOutput.latexCode, template: selectedTemplate, filename }),
+        body: JSON.stringify({ 
+          latexCode: generatedOutput.latexCode, 
+          template: selectedTemplate, 
+          filename,
+          photo: cvData.personalInfo?.photo || ''
+        }),
       });
 
       if (!res.ok) {

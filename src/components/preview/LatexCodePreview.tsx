@@ -6,12 +6,13 @@ import { Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 interface LatexCodePreviewProps {
   latexCode: string;
   template: string;
+  photo?: string;
 }
 
 const LATEX_API_URL = process.env.NEXT_PUBLIC_LATEX_API_URL || 'http://localhost:8000';
 const DEBOUNCE_MS = 1500;
 
-export default function LatexCodePreview({ latexCode, template }: LatexCodePreviewProps) {
+export default function LatexCodePreview({ latexCode, template, photo }: LatexCodePreviewProps) {
   const [previewSrc, setPreviewSrc] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -34,7 +35,7 @@ export default function LatexCodePreview({ latexCode, template }: LatexCodePrevi
       const res = await fetch(`${LATEX_API_URL}/latex-preview.php`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ latexCode: code, template }),
+        body: JSON.stringify({ latexCode: code, template, photo }),
         signal: controller.signal,
       });
 

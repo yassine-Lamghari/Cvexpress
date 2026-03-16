@@ -157,7 +157,7 @@ if ($piLinkedin) $personalInfoBlock .= "- LinkedIn: {$piLinkedin}\n";
 if ($piWebsite) $personalInfoBlock .= "- Site web: {$piWebsite}\n";
 
 // --- Read .tex template ---
-$allowedTemplates = ['professional', 'charles', 'rezume'];
+$allowedTemplates = ['professional', 'charles', 'rezume', 'modern_image'];
 if (!in_array($template, $allowedTemplates, true)) {
     $template = 'professional';
 }

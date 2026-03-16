@@ -125,8 +125,20 @@ const downloadCV = useCallback(async (cvId: string, title: string, template: str
       .eq('user_id', user.id)
       .single();
 
+    const { data: cvInfo } = await supabase
+      .from('cvs')
+      .select('cv_data')
+      .eq('id', cvId)
+      .eq('user_id', user.id)
+      .single();
+
     if (!outputData?.latex_code) return false;
-    
+
+    let photo = '';
+    if (cvInfo?.cv_data?.personalInfo?.photo) {
+      photo = cvInfo.cv_data.personalInfo.photo;
+    }
+
     try {
       // Use the helper to get the correct API URL (handles NEXT_PUBLIC_LATEX_API_URL or defaults)
       const apiUrl = process.env.NEXT_PUBLIC_LATEX_API_URL || 'http://localhost:8000';
@@ -137,7 +149,11 @@ const downloadCV = useCallback(async (cvId: string, title: string, template: str
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ latexCode: outputData.latex_code, template: template || 'professional' }),
+        body: JSON.stringify({ 
+          latexCode: outputData.latex_code, 
+          template: template || 'professional',
+          photo
+        }),
       });
 
       if (!response.ok) throw new Error(`Erreur de génération du PDF: ${response.statusText}`);

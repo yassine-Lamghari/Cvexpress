@@ -7,16 +7,17 @@ import { parseLaTeXSections, type ParsedSection } from '@/lib/latex-parser';
 interface ClickablePreviewProps {
   latexCode: string;
   template: string;
+  photo?: string;
   locale: string;
   onSectionClick: (section: ParsedSection, rect: DOMRect) => void;
   activeSection?: string | null;
 }
 
 const SECTION_LABELS: Record<string, Record<string, string>> = {
-  Header: { fr: 'En-tête', en: 'Header' },
+  Header: { fr: 'En-tÃªte', en: 'Header' },
 };
 
-export default function ClickablePreview({ latexCode, template, locale, onSectionClick, activeSection }: ClickablePreviewProps) {
+export default function ClickablePreview({ latexCode, template, photo, locale, onSectionClick, activeSection }: ClickablePreviewProps) {
   const sections = useMemo(() => parseLaTeXSections(latexCode), [latexCode]);
 
   // Calculate cumulative positions (top %) from heightRatios
@@ -43,7 +44,7 @@ export default function ClickablePreview({ latexCode, template, locale, onSectio
     <div className="relative w-full">
       {/* PDF Preview */}
       <div style={{ aspectRatio: '210 / 297' }}>
-        <LatexCodePreview latexCode={latexCode} template={template} />
+          <LatexCodePreview latexCode={latexCode} template={template} photo={photo} />
       </div>
 
       {/* Clickable zone overlay */}

@@ -38,7 +38,7 @@ $template = $input['template'] ?? 'professional';
 $latexCode = $input['latexCode'] ?? null;
 
 // ── Validate template name (whitelist to prevent path traversal) ──
-$allowedTemplates = ['professional', 'charles', 'rezume'];
+$allowedTemplates = ['professional', 'charles', 'rezume', 'modern_image'];
 if (!in_array($template, $allowedTemplates, true)) {
     http_response_code(400);
     echo json_encode(['error' => 'Unknown template: ' . $template]);
@@ -73,7 +73,24 @@ try {
     // ── Write .tex file ──
     $texFile = $tmpDir . DIRECTORY_SEPARATOR . 'cv.tex';
     file_put_contents($texFile, $latex);
-
+    // —— Save Photo if provided ——
+    if (!empty($input['photo'])) {
+        $photoData = $input['photo'];
+        if (preg_match('/^data:image\/(\w+);base64,/', $photoData, $type)) {
+            $dataRegex = substr($photoData, strpos($photoData, ',') + 1);
+            $type = strtolower($type[1]); // jpg, png, etc.
+            if (in_array($type, ['jpg', 'jpeg', 'png', 'webp'])) {
+                // LaTeX traditionally works best with jpg/png, so let's save it as photo.png or photo.jpg
+                $ext = $type === 'jpeg' ? 'jpg' : $type;
+                $decoded = base64_decode($dataRegex);
+                if ($decoded !== false) {
+                    file_put_contents($tmpDir . DIRECTORY_SEPARATOR . 'photo.' . $ext, $decoded);
+                    // Also always save a standard photo.png fallback for easiest template usage
+                    if ($ext !== 'png') file_put_contents($tmpDir . DIRECTORY_SEPARATOR . 'photo.png', $decoded);
+                }
+            }
+        }
+    }
     // ── Compile LaTeX ──
     // -no-shell-escape prevents \write18 command injection
     // Use chdir to avoid path-with-spaces issues in the cd command
