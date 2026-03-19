@@ -50,7 +50,7 @@ export default function Navbar() {
       <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-sm border-b border-gray-100">
         <div className="max-w-2xl mx-auto px-5 flex items-center justify-between h-14">
           <a href="/" className="text-base font-semibold text-gray-900">
-            CV Express IA
+            CVzzer
           </a>
           <div className="flex items-center gap-3">
             <button

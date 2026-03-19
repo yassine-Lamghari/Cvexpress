@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "CV Express IA — Créez votre CV adapté à chaque offre d'emploi",
+  title: "CVzzer — Créez votre CV adapté à chaque offre d'emploi",
   description:
     "Créez votre CV, lettre de motivation et email de candidature adaptés à chaque offre d'emploi grâce à l'IA — 100% gratuit. Templates professionnels, PDF téléchargeable.",
   keywords: [
@@ -30,7 +30,7 @@ export const metadata: Metadata = {
     "AI resume",
   ],
   openGraph: {
-    title: "CV Express IA — Votre CV parfait en quelques minutes",
+    title: "CVzzer — Votre CV parfait en quelques minutes",
     description:
       "Collez votre expérience et l'offre d'emploi. Notre IA génère un CV adapté, une lettre de motivation et un email de candidature.",
     type: "website",

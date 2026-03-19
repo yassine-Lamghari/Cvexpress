@@ -1,6 +1,6 @@
 {
   "site": {
-    "title": "CV Express IA",
+    "title": "CVzzer",
     "description": "Créez votre CV, lettre de motivation et email de candidature adaptés à chaque offre d'emploi grâce à l'IA — 100% gratuit"
   },
   "nav": {
@@ -147,7 +147,9 @@
     "rezume": "Rezume",
     "rezumeDesc": "Source Sans Pro, sections bleues, style développeur moderne",
     "modern_image": "Moderne avec Image",
-    "modern_imageDesc": "Template moderne basé sur Professional, avec intégration de photo de profil"
+    "modern_imageDesc": "Template moderne basé sur Professional, avec intégration de photo de profil",
+    "one_and_half_column": "1.5 Colonnes",
+    "one_and_half_columnDesc": "Template CV moderne 1.5 colonnes avec photo, icônes, et style Roboto"
   },
   "common": {
     "loading": "Chargement...",

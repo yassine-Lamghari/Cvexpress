@@ -1,6 +1,6 @@
 {
   "site": {
-    "title": "CV Express AI",
+    "title": "CVzzer",
     "description": "Create your CV, cover letter and application email tailored to every job offer with AI — 100% free"
   },
   "nav": {
@@ -147,7 +147,9 @@
     "rezume": "Rezume",
     "rezumeDesc": "Source Sans Pro, blue sections, modern developer style",
     "modern_image": "Modern with Image",
-    "modern_imageDesc": "Modern template based on Professional, with profile photo integration"
+    "modern_imageDesc": "Modern template based on Professional, with profile photo integration",
+    "one_and_half_column": "1.5 Columns",
+    "one_and_half_columnDesc": "Modern 1.5 columns CV template with photo, icons, and Roboto style"
   },
   "common": {
     "loading": "Loading...",

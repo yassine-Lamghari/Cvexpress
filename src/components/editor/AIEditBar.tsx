@@ -21,7 +21,11 @@ export default function AIEditBar() {
     try {
       const res = await fetch(`${LATEX_API_URL}/edit.php`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache'
+        },
+        cache: 'no-store',
         body: JSON.stringify({
           latexCode: generatedOutput.latexCode,
           instruction: instruction.trim(),

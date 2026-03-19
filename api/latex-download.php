@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * LaTeX Download API
  * 
@@ -23,10 +23,10 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-// ── Load config ──
+// â”€â”€ Load config â”€â”€
 require_once __DIR__ . '/latex-config.php';
 
-// ── Parse request ──
+// â”€â”€ Parse request â”€â”€
 $input = json_decode(file_get_contents('php://input'), true);
 if (!$input) {
     header('Content-Type: application/json');
@@ -39,8 +39,8 @@ $template = $input['template'] ?? 'professional';
 $filename = $input['filename'] ?? 'CV.pdf';
 $latexCode = $input['latexCode'] ?? null;
 
-// ── Validate template name (whitelist to prevent path traversal) ──
-$allowedTemplates = ['professional', 'charles', 'rezume', 'modern_image'];
+// â”€â”€ Validate template name (whitelist to prevent path traversal) â”€â”€
+$allowedTemplates = ['professional', 'charles', 'rezume', 'modern_image', 'one_and_half_column'];
 if (!in_array($template, $allowedTemplates, true)) {
     header('Content-Type: application/json');
     http_response_code(400);
@@ -55,13 +55,13 @@ if (empty($latexCode)) {
     exit;
 }
 
-// ── Sanitize filename ──
-$filename = preg_replace('/[^a-zA-Z0-9\-_\. àâäéèêëîïôùûüç]/', '', $filename);
+// â”€â”€ Sanitize filename â”€â”€
+$filename = preg_replace('/[^a-zA-Z0-9\-_\. Ã Ã¢Ã¤Ã©Ã¨ÃªÃ«Ã®Ã¯Ã´Ã¹Ã»Ã¼Ã§]/', '', $filename);
 if (empty($filename) || !str_ends_with(strtolower($filename), '.pdf')) {
     $filename = 'CV.pdf';
 }
 
-// ── Create temp directory (local to avoid path-with-spaces issues) ──
+// â”€â”€ Create temp directory (local to avoid path-with-spaces issues) â”€â”€
 $tmpBase = __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . '.latex_tmp';
 if (!is_dir($tmpBase)) {
     mkdir($tmpBase, 0755, true);
@@ -81,10 +81,10 @@ try {
         throw new \RuntimeException('Template returned empty LaTeX');
     }
 
-    // ── Write .tex file ──
+    // â”€â”€ Write .tex file â”€â”€
     $texFile = $tmpDir . DIRECTORY_SEPARATOR . 'cv.tex';
     file_put_contents($texFile, $latex);
-    // —— Save Photo if provided ——
+    // â€”â€” Save Photo if provided â€”â€”
     if (!empty($input['photo'])) {
         $photoData = $input['photo'];
         if (preg_match('/^data:image\/(\w+);base64,/', $photoData, $type)) {
@@ -100,7 +100,7 @@ try {
             }
         }
     }
-    // ── Compile LaTeX ──
+    // â”€â”€ Compile LaTeX â”€â”€
     // -no-shell-escape prevents \write18 command injection
     // Use chdir to avoid path-with-spaces issues in the cd command
     $prevDir = getcwd();
@@ -127,7 +127,7 @@ try {
         throw new \RuntimeException('LaTeX compilation failed. Log: ' . substr($logContent, -2000));
     }
 
-    // ── Return PDF ──
+    // â”€â”€ Return PDF â”€â”€
     $pdfContent = file_get_contents($pdfFile);
     header('Content-Type: application/pdf');
     header('Content-Disposition: attachment; filename="' . $filename . '"');
@@ -136,10 +136,12 @@ try {
 
 } catch (\Throwable $e) {
     header('Content-Type: application/json');
-    http_response_code(500);
-    echo json_encode(['error' => $e->getMessage()]);
+    
+    $code = $e instanceof \InvalidArgumentException ? 400 : 500;
+    http_response_code($code);
+    echo json_encode(["error" => $e->getMessage()]);
 } finally {
-    // ── Cleanup temp directory ──
+    // â”€â”€ Cleanup temp directory â”€â”€
     if (is_dir($tmpDir)) {
         $files = new RecursiveIteratorIterator(
             new RecursiveDirectoryIterator($tmpDir, RecursiveDirectoryIterator::SKIP_DOTS),
@@ -151,3 +153,4 @@ try {
         rmdir($tmpDir);
     }
 }
+

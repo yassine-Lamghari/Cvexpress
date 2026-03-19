@@ -158,7 +158,7 @@ foreach ($geminiModels as $geminiModel) {
             ],
         ],
         'generationConfig' => [
-            'temperature' => 0.3,
+            'temperature' => 0.7,
             'maxOutputTokens' => 32768,
         ],
     ]);

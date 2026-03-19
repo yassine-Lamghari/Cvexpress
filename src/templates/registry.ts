@@ -33,6 +33,14 @@ export const templateList: TemplateInfo[] = [
     tags: ['photo', 'moderne', 'professionnel'],
     primaryColor: '#0E5484',
   },
+  {
+    id: 'one_and_half_column',
+    name: '1.5 Column',
+    description: 'Template CV 1.5 colonnes avec photo, icônes, et style Roboto',
+    thumbnail: '/templates/professional-thumb.png',
+    tags: ['photo', 'moderne', 'colonnes'],
+    primaryColor: '#000000',
+  },
 ];
 
 export function getTemplateInfo(templateId: string): TemplateInfo | undefined {

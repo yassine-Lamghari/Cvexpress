@@ -1,4 +1,4 @@
-# CV Express IA
+# CVzzer
 
 AI-powered CV builder that generates tailored resumes, cover letters, and application emails from your profile and a job posting. Built with Next.js (static frontend) + PHP (LaTeX compilation API) + Google Gemini AI.
 

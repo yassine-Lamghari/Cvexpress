@@ -9,7 +9,7 @@ export default function Footer() {
     <footer className="mt-auto border-t border-gray-100">
       <div className="max-w-2xl mx-auto px-5 py-8 text-center">
         <p className="text-sm text-gray-400">
-          © {new Date().getFullYear()} CV Express IA — {t('footer.madeWith')}
+          © {new Date().getFullYear()} CVzzer — {t('footer.madeWith')}
         </p>
       </div>
     </footer>

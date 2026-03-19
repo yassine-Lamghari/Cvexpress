@@ -17,7 +17,11 @@ export default function TemplatesPage() {
     professional: 'bg-[#0E5484]',
     charles: 'bg-gray-800',
     rezume: 'bg-blue-600',
-      modern_image: 'bg-[#0E5484]',
+    modern_image: 'bg-[#0E5484]',
+    one_and_half_column: 'bg-black',
+  };
+
+  return (
     <>
       <Navbar />
       <main className="flex-1">

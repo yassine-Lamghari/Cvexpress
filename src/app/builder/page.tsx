@@ -42,7 +42,12 @@ export default function BuilderPage() {
       const timeoutId = setTimeout(() => controller.abort(), 120000);
       const response = await fetch(`${LATEX_API_URL}/generate.php`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        },
+        cache: 'no-store',
         signal: controller.signal,
         body: JSON.stringify({
           resume: rawResume,

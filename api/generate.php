@@ -85,6 +85,8 @@ if (!$input) {
 
 $resume = $input['resume'] ?? '';
 $skills = $input['skills'] ?? '';
+$skills = is_array($skills) ? json_encode($skills) : $skills;
+if (is_array($skills)) { $skills = json_encode($skills, JSON_UNESCAPED_UNICODE); }
 $jobOffer = $input['jobOffer'] ?? '';
 $locale = in_array($input['locale'] ?? '', ['fr', 'en'], true) ? $input['locale'] : 'fr';
 $template = isset($input['template']) && is_string($input['template']) ? $input['template'] : 'professional';
@@ -105,6 +107,22 @@ $piCountry = isset($personalInfo['country']) && is_string($personalInfo['country
 $piLinkedin = isset($personalInfo['linkedin']) && is_string($personalInfo['linkedin']) ? trim($personalInfo['linkedin']) : '';
 $piWebsite = isset($personalInfo['website']) && is_string($personalInfo['website']) ? trim($personalInfo['website']) : '';
 $piTitle = isset($personalInfo['title']) && is_string($personalInfo['title']) ? trim($personalInfo['title']) : $personalTitle;
+
+function escape_latex_text(string $text): string {
+    $map = [
+        '\\' => '\\textbackslash{}',
+        '{' => '\\{',
+        '}' => '\\}',
+        '&' => '\\&',
+        '%' => '\\%',
+        '$' => '\\$',
+        '#' => '\\#',
+        '_' => '\\_',
+        '^' => '\\textasciicircum{}',
+        '~' => '\\textasciitilde{}',
+    ];
+    return strtr($text, $map);
+}
 
 // Build location string
 $piLocation = implode(', ', array_filter([$piCity, $piCountry]));
@@ -131,14 +149,14 @@ if (empty($jobOffer)) {
 $MAX_RESUME = 15000;
 $MAX_SKILLS = 5000;
 $MAX_JOB = 15000;
-if (mb_strlen($resume) > $MAX_RESUME || mb_strlen($skills) > $MAX_SKILLS || mb_strlen($jobOffer) > $MAX_JOB) {
+if (mb_strlen($resume) > $MAX_RESUME || (is_string($skills) && mb_strlen($skills) > $MAX_SKILLS) || mb_strlen($jobOffer) > $MAX_JOB) {
     http_response_code(400);
     echo json_encode(['error' => 'Input too long. Max: resume ' . $MAX_RESUME . ', skills ' . $MAX_SKILLS . ', jobOffer ' . $MAX_JOB . ' characters.']);
     exit;
 }
 
 // --- Build prompt ---
-$lang = ($locale === 'fr') ? 'français' : 'English';
+$lang = ($locale === 'fr') ? 'franÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â§ais' : 'English';
 
 $experiencesJson = !empty($experiences) ? json_encode($experiences, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) : '[]';
 $stagesJson = !empty($stages) ? json_encode($stages, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) : '[]';
@@ -151,13 +169,13 @@ $titleLine = $piTitle ? "- Titre professionnel: {$piTitle}" : '';
 // Build detailed personal info block for the prompt
 $personalInfoBlock = "";
 if ($piEmail) $personalInfoBlock .= "- Email: {$piEmail}\n";
-if ($piPhone) $personalInfoBlock .= "- Téléphone: {$piPhone}\n";
+if ($piPhone) $personalInfoBlock .= "- TÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©lÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©phone: {$piPhone}\n";
 if ($piLocation) $personalInfoBlock .= "- Localisation: {$piLocation}\n";
 if ($piLinkedin) $personalInfoBlock .= "- LinkedIn: {$piLinkedin}\n";
 if ($piWebsite) $personalInfoBlock .= "- Site web: {$piWebsite}\n";
 
 // --- Read .tex template ---
-$allowedTemplates = ['professional', 'charles', 'rezume', 'modern_image'];
+$allowedTemplates = ['professional', 'charles', 'rezume', 'modern_image', 'one_and_half_column'];
 if (!in_array($template, $allowedTemplates, true)) {
     $template = 'professional';
 }
@@ -174,9 +192,9 @@ $sectionNames = [];
 if ($locale === 'fr') {
     $sectionNames = [
         'SECTION_EDUCATION' => 'Formation',
-        'SECTION_EXPERIENCE' => 'Expérience Professionnelle',
+        'SECTION_EXPERIENCE' => 'ExpÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rience Professionnelle',
         'SECTION_STAGES' => 'Stages',
-        'SECTION_SKILLS' => 'Compétences Techniques',
+        'SECTION_SKILLS' => 'CompÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©tences Techniques',
         'SECTION_PROJECTS' => 'Projets',
         'SECTION_CERTIFICATIONS' => 'Certifications',
         'SECTION_LANGUAGES' => 'Langues',
@@ -206,6 +224,14 @@ foreach ($sectionNames as $marker => $name) {
     $texTemplate = str_replace('%%' . $marker . '%%', $name, $texTemplate);
 }
 
+// Replace personal title (for one_and_half_column template)
+if ($piTitle) {
+    $safePiTitle = escape_latex_text($piTitle);
+    $texTemplate = str_replace('%%PERSONAL_TITLE%%', '\\vspace{1mm}\n\\large\\textbf{\\textcolor{accentcolor}{' . $safePiTitle . '}}\n\\vspace{2mm}', $texTemplate);
+} else {
+    $texTemplate = str_replace('%%PERSONAL_TITLE%%', '', $texTemplate);
+}
+
 // --- Determine which sections have data ---
 $hasExperiences = !empty($experiences);
 $hasStages = !empty($stages);
@@ -213,9 +239,9 @@ $hasEducation = !empty($education);
 $hasLanguages = !empty($languages);
 $hasCertifications = !empty($certifications);
 
-// Build list of sections WITHOUT structured data — AI must fill them from the raw resume/job offer
+// Build list of sections WITHOUT structured data ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â AI must fill them from the raw resume/job offer
 $sectionsToFill = [];
-if (!$hasExperiences) $sectionsToFill[] = 'EXPERIENCE (Expériences professionnelles)';
+if (!$hasExperiences) $sectionsToFill[] = 'EXPERIENCE (ExpÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©riences professionnelles)';
 if (!$hasStages) $sectionsToFill[] = 'STAGES (Stages/Internships)';
 if (!$hasEducation) $sectionsToFill[] = 'EDUCATION (Formation)';
 if (!$hasLanguages) $sectionsToFill[] = 'LANGUAGES (Langues)';
@@ -224,77 +250,91 @@ if (!$hasCertifications) $sectionsToFill[] = 'CERTIFICATIONS';
 $fillSectionsInstruction = '';
 if (!empty($sectionsToFill)) {
     $list = implode(', ', $sectionsToFill);
-    $fillSectionsInstruction = "\n\n## SECTIONS SANS DONNÉES STRUCTURÉES (À REMPLIR DEPUIS LE CV BRUT)\nLes sections suivantes n'ont PAS de données structurées fournies: {$list}.\nTu DOIS quand même les remplir:\n- Extrais les informations du CV brut du candidat ci-dessus.\n- NE JAMAIS INVENTER de fausses expériences, formations ou entreprises. Utilise UNIQUEMENT les informations fournies.\n- Si le CV brut ne contient pas d'informations pour une section, place UN SEUL commentaire LaTeX %% section vide — pas de données fournies et supprime le bloc de section.\n- Pour les langues: ajoute celles mentionnées dans le CV brut ou l'offre d'emploi. S'il n'y a rien, ajoute uniquement la langue du CV (Natif).\n- AUCUN placeholder. Si une section est vraiment vide, SUPPRIME-la du document.";
+    $fillSectionsInstruction = "\n\n## SECTIONS SANS DONNÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°ES STRUCTURÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°ES (ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ REMPLIR DEPUIS LE CV BRUT)\nLes sections suivantes n'ont PAS de donnÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©es structurÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©es fournies: {$list}.\nTu DOIS quand mÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Âªme les remplir:\n- Extrais les informations du CV brut du candidat ci-dessus.\n- NE JAMAIS INVENTER de fausses expÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©riences, formations ou entreprises. Utilise UNIQUEMENT les informations fournies.\n- Si le CV brut ne contient pas d'informations pour une section, place UN SEUL commentaire LaTeX %% section vide ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â pas de donnÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©es fournies et supprime le bloc de section.\n- Pour les langues: ajoute celles mentionnÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©es dans le CV brut ou l'offre d'emploi. S'il n'y a rien, ajoute uniquement la langue du CV (Natif).\n- AUCUN placeholder. Si une section est vraiment vide, SUPPRIME-la du document.";
 }
 
 // --- Template-specific instructions ---
 $templateInstructions = '';
 if ($template === 'charles') {
     $templateInstructions = "
-### INSTRUCTIONS SPÉCIFIQUES AU TEMPLATE CHARLES:
-- Le HEADER utilise un \\begin{center}...\\end{center} centré (sans photo).
-- Les entrées utilisent la commande \\CVSubheading{Titre}{Date}{Sous-titre}{Lieu} avec des \\CVItem{} pour les bullet points.
-- Les compétences utilisent \\textbf{Catégorie}{: Valeurs}.
-- N'utilise QUE les commandes définies dans le préambule: \\CVSubheading, \\CVItem, \\CVSubItem, \\CVSubHeadingListStart, \\CVSubHeadingListEnd, \\CVItemListStart, \\CVItemListEnd.
-- N'utilise JAMAIS \\faIcon, \\faGithub, \\faLinkedin, \\textcolor ou d'autres commandes NON définies dans le préambule.";
+### INSTRUCTIONS SPÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°CIFIQUES AU TEMPLATE CHARLES:
+- Le HEADER utilise un \\begin{center}...\\end{center} centrÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â© (sans photo).
+- Les entrÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©es utilisent la commande \\CVSubheading{Titre}{Date}{Sous-titre}{Lieu} avec des \\CVItem{} pour les bullet points.
+- Les compÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©tences utilisent \\textbf{CatÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©gorie}{: Valeurs}.
+- N'utilise QUE les commandes dÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©finies dans le prÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©ambule: \\CVSubheading, \\CVItem, \\CVSubItem, \\CVSubHeadingListStart, \\CVSubHeadingListEnd, \\CVItemListStart, \\CVItemListEnd.
+- N'utilise JAMAIS \\faIcon, \\faGithub, \\faLinkedin, \\textcolor ou d'autres commandes NON dÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©finies dans le prÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©ambule.";
 } elseif ($template === 'professional') {
     $templateInstructions = "
-### INSTRUCTIONS SPÉCIFIQUES AU TEMPLATE PROFESSIONAL:
-- Le HEADER est centré avec \\begin{center}.
-- Les sections utilisent \\color{headingcolor} devant le titre — GARDE CE FORMAT EXACT.
-- RÈGLE CRITIQUE: La commande \\resumeSubheading prend TOUJOURS EXACTEMENT 4 arguments entre accolades: {arg1}{arg2}{arg3}{arg4}. Ne JAMAIS omettre un argument. Si un argument est vide, utilise {}.
-- Pour les EXPÉRIENCES: \\resumeSubheading{Titre du poste}{}{Entreprise, Lieu}{Date début -- Date fin} avec \\resumeItem{} pour les bullet points.
-- Pour la FORMATION: \\resumeSubheading{Nom de l'institution}{Ville, Pays}{Diplôme -- Spécialisation}{Date début -- Date fin}.
+### INSTRUCTIONS SPÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°CIFIQUES AU TEMPLATE PROFESSIONAL:
+- Le HEADER est centrÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â© avec \\begin{center}.
+- Les sections utilisent \\color{headingcolor} devant le titre ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â GARDE CE FORMAT EXACT.
+- RÃƒÆ’Ã†â€™Ãƒâ€¹Ã¢â‚¬Â GLE CRITIQUE: La commande \\resumeSubheading prend TOUJOURS EXACTEMENT 4 arguments entre accolades: {arg1}{arg2}{arg3}{arg4}. Ne JAMAIS omettre un argument. Si un argument est vide, utilise {}.
+- Pour les EXPÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°RIENCES: \\resumeSubheading{Titre du poste}{}{Entreprise, Lieu}{Date dÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©but -- Date fin} avec \\resumeItem{} pour les bullet points.
+- Pour la FORMATION: \\resumeSubheading{Nom de l'institution}{Ville, Pays}{DiplÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â´me -- SpÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©cialisation}{Date dÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©but -- Date fin}.
   Exemple EXACT pour la formation:
     \\resumeSubheading
-      {Université de Paris}{Paris, France}
-      {Master Informatique -- Spécialité Intelligence Artificielle}{Sept. 2022 -- Juin 2024}
-  Exemple EXACT pour les expériences:
+      {UniversitÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â© de Paris}{Paris, France}
+      {Master Informatique -- SpÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©cialitÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â© Intelligence Artificielle}{Sept. 2022 -- Juin 2024}
+  Exemple EXACT pour les expÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©riences:
     \\resumeSubheading
-      {Développeur Full Stack}{}
-      {Entreprise XYZ, Paris}{Jan. 2023 -- Déc. 2024}
-- Les compétences utilisent \\textbf{\\normalsize{Catégorie:}}{ \\normalsize{Valeurs}}.
+      {DÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©veloppeur Full Stack}{}
+      {Entreprise XYZ, Paris}{Jan. 2023 -- DÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©c. 2024}
+- Les compÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©tences utilisent \\textbf{\\normalsize{CatÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©gorie:}}{ \\normalsize{Valeurs}}.
 - Les projets utilisent \\resumeItem{\\normalsize{\\textbf{Titre}, Description.}}.
-- N'utilise QUE les commandes définies dans le préambule: \\resumeItem, \\resumeSubheading, \\resumeSingleSubheading, \\resumeSubSubheading, \\resumeProjectHeading, \\resumeSubItem, \\resumeSubHeadingListStart, \\resumeSubHeadingListEnd, \\resumeItemListStart, \\resumeItemListEnd, \\sbullet, \\color{headingcolor}, \\color{blue}.
-- N'utilise JAMAIS \\faIcon, \\faGithub, \\faLinkedin car fontawesome5 utilise une syntaxe différente. Pour les icônes, utilise simplement du texte ou des séparateurs comme ~ \\small{-} ~.
-- NE CRÉE PAS de nouvelles commandes (\\newcommand) dans le corps du document.";
+- N'utilise QUE les commandes dÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©finies dans le prÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©ambule: \\resumeItem, \\resumeSubheading, \\resumeSingleSubheading, \\resumeSubSubheading, \\resumeProjectHeading, \\resumeSubItem, \\resumeSubHeadingListStart, \\resumeSubHeadingListEnd, \\resumeItemListStart, \\resumeItemListEnd, \\sbullet, \\color{headingcolor}, \\color{blue}.
+- N'utilise JAMAIS \\faIcon, \\faGithub, \\faLinkedin car fontawesome5 utilise une syntaxe diffÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rente. Pour les icÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â´nes, utilise simplement du texte ou des sÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©parateurs comme ~ \\small{-} ~.
+- NE CRÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°E PAS de nouvelles commandes (\\newcommand) dans le corps du document.";
 } elseif ($template === 'rezume') {
     $templateInstructions = "
-### INSTRUCTIONS SPÉCIFIQUES AU TEMPLATE REZUME:
-- Le HEADER est un tabular* à 2 colonnes (nom+liens à gauche, localisation+contact à droite).
-- La section Summary (%%SUMMARY_TEXT%%) doit contenir un résumé professionnel adapté à l'offre (2-3 phrases percutantes).
-- Les entrées utilisent \\resumeQuadHeading{Titre}{Date}{Sous-titre}{Lieu} avec \\resumeItem{}.
-- Les compétences utilisent \\resumeSectionType{Catégorie}{:}{Valeurs}.
+### INSTRUCTIONS SPÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°CIFIQUES AU TEMPLATE REZUME:
+- Le HEADER est un tabular* ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  2 colonnes (nom+liens ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  gauche, localisation+contact ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  droite).
+- La section Summary (%%SUMMARY_TEXT%%) doit contenir un rÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©sumÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â© professionnel adaptÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â© ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  l'offre (2-3 phrases percutantes).
+- Les entrÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©es utilisent \\resumeQuadHeading{Titre}{Date}{Sous-titre}{Lieu} avec \\resumeItem{}.
+- Les compÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©tences utilisent \\resumeSectionType{CatÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©gorie}{:}{Valeurs}.
 - Les projets utilisent \\resumeTrioHeading{Nom}{Technologies}{Lien}.
 - Les langues utilisent \\resumeSectionType{Langue}{:}{Niveau}.
-- N'utilise QUE les commandes définies dans le préambule: \\resumeItem, \\resumeQuadHeading, \\resumeQuadHeadingChild, \\resumeTrioHeading, \\resumeSectionType, \\resumeHeadingListStart, \\resumeHeadingListEnd, \\resumeItemListStart, \\resumeItemListEnd.
-- N'utilise JAMAIS \\faIcon, \\faGithub, \\faLinkedin, \\textcolor ou d'autres commandes NON définies dans le préambule.";
+- N'utilise QUE les commandes dÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©finies dans le prÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©ambule: \\resumeItem, \\resumeQuadHeading, \\resumeQuadHeadingChild, \\resumeTrioHeading, \\resumeSectionType, \\resumeHeadingListStart, \\resumeHeadingListEnd, \\resumeItemListStart, \\resumeItemListEnd.
+- N'utilise JAMAIS \\faIcon, \\faGithub, \\faLinkedin, \\textcolor ou d'autres commandes NON dÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©finies dans le prÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©ambule.";
+} elseif ($template === 'one_and_half_column') {
+    $templateInstructions = '
+### INSTRUCTIONS SPÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°CIFIQUES AU TEMPLATE ONE_AND_HALF_COLUMN:
+- NE JAMAIS MODIFIER LE PREAMBULE (avant \begin{document}). Le code des commandes comme \cvsection et \cvitem doit rester STRICTEMENT IDENTIQUE et INTACT.
+- IMPORTANT: Toutes les accolades ouvertes doivent ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Âªtre fermÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©es correctement. VÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rifie tes \begin{itemize} ... \end{itemize} et tes \cvitem{...}{...}.
+- Si tu utilises \cvitem{}, n\'oublie JAMAIS de fournir DEUX arguments complets : le premier (ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  gauche) et le deuxiÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨me (ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  droite). Exemple : \cvitem{gauche}{droite}. Ne laisse pas de bloc vide ou inachevÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©.
+- Remplace les marqueurs %%CANDIDATE_NAME%%, %%EMAIL%%, %%PHONE%%, etc. par les vraies valeurs..
+- Respecte l utilisation de \cvpersonalinfolinewithicon. Ne supprime pas le premier paramÃƒÆ’Ã‚Â¨tre \faMapMarker, \faPhone, etc.
+- N\'oublie pas de vÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rifier que fontawesome5 (\faMapMarker, \faEnvelope, \faPhone) est bien configurÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â© pour les icÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â´nes de contact.
+- Utilise \cvsection pour les titres de section (en majuscules: WORK EXPERIENCE, EDUCATION, SKILLS).
+- Les expÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©riences utilisent \cvitem{\cvdurationstyle{...}}{\cvtitle{...}\begin{itemize}...\end{itemize}}.
+- N\'invente pas d\'items, remplace les ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©lÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©ments factices par les expÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©riences rÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©elles.
+- Garde l\'image \IfFileExists{photo.png}... et \IfFileExists{photo.jpg}... dans le block \cvpersonalinfo exactement telle quelle.
+';
 }
 
-$systemPrompt = "Tu es un expert en rédaction de CV professionnels ET en LaTeX. Tu reçois un template LaTeX avec des marqueurs %%...%% et les données d'un candidat. Tu dois remplir le template en respectant cette HIÉRARCHIE DE PRIORITÉ:
+$systemPrompt = "Tu es un expert en rÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©daction de CV professionnels ET en LaTeX. Tu reÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â§ois un template LaTeX avec des marqueurs %%...%% et les donnÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©es d'un candidat. Tu dois remplir le template en respectant cette HIÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°RARCHIE DE PRIORITÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°:
 
-## HIÉRARCHIE DES SOURCES DE DONNÉES (STRICTE):
-1. **PRIORITÉ ABSOLUE — Données structurées de l'utilisateur**: Les informations personnelles (nom, email, téléphone, ville), les expériences, la formation, les langues et certifications fournis via le formulaire sont SACRÉES. Ne les modifie JAMAIS, ne les supprime JAMAIS. Utilise-les TELLES QUELLES comme base.
-2. **PRIORITÉ 2 — CV brut de l'utilisateur**: Extrais toute information complémentaire du texte brut fourni par le candidat.
-3. **PRIORITÉ 3 — Enrichissement depuis l'offre d'emploi**: ADAPTE et REFORMULE les descriptions des expériences et compétences pour correspondre aux mots-clés de l'offre d'emploi (optimisation ATS). Ajoute des bullet points pertinents, des métriques chiffrées, des verbes d'action.
+## HIÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°RARCHIE DES SOURCES DE DONNÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°ES (STRICTE):
+1. **PRIORITÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â° ABSOLUE ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â DonnÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©es structurÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©es de l'utilisateur**: Les informations personnelles (nom, email, tÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©lÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©phone, ville), les expÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©riences, la formation, les langues et certifications fournis via le formulaire sont SACRÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°ES. Ne les modifie JAMAIS, ne les supprime JAMAIS. Utilise-les TELLES QUELLES comme base.
+2. **PRIORITÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â° 2 ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â CV brut de l'utilisateur**: Extrais toute information complÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©mentaire du texte brut fourni par le candidat.
+3. **PRIORITÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â° 3 ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â Enrichissement depuis l'offre d'emploi**: ADAPTE et REFORMULE les descriptions des expÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©riences et compÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©tences pour correspondre aux mots-clÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©s de l'offre d'emploi (optimisation ATS). Ajoute des bullet points pertinents, des mÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©triques chiffrÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©es, des verbes d'action.
 
-## RÈGLE ABSOLUE — NE JAMAIS INVENTER:
-- N'INVENTE JAMAIS de fausses expériences professionnelles, entreprises, formations ou écoles.
-- N'INVENTE JAMAIS de faux diplômes, certifications ou projets.
-- Tu peux REFORMULER, ENRICHIR et ADAPTER les données fournies par l'utilisateur, mais tu ne dois JAMAIS créer de nouvelles entrées fictives.
-- Si une section n'a pas de données, SUPPRIME-la du document au lieu de la remplir avec du contenu inventé.
-- Les SEULES choses que tu peux créer: des bullet points descriptifs pour des expériences RÉELLES fournies par le candidat, un résumé professionnel synthétisant le profil.
+## RÃƒÆ’Ã†â€™Ãƒâ€¹Ã¢â‚¬Â GLE ABSOLUE ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â NE JAMAIS INVENTER:
+- N'INVENTE JAMAIS de fausses expÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©riences professionnelles, entreprises, formations ou ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©coles.
+- N'INVENTE JAMAIS de faux diplÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â´mes, certifications ou projets.
+- Tu peux REFORMULER, ENRICHIR et ADAPTER les donnÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©es fournies par l'utilisateur, mais tu ne dois JAMAIS crÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©er de nouvelles entrÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©es fictives.
+- Si une section n'a pas de donnÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©es, SUPPRIME-la du document au lieu de la remplir avec du contenu inventÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©.
+- Les SEULES choses que tu peux crÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©er: des bullet points descriptifs pour des expÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©riences RÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°ELLES fournies par le candidat, un rÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©sumÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â© professionnel synthÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©tisant le profil.
 
-## RÈGLES SUR LES DONNÉES PERSONNELLES:
-- NE MODIFIE JAMAIS le nom, email, téléphone fournis par l'utilisateur.
-- Si l'email/téléphone ne sont PAS fournis, utilise un placeholder réaliste (prenom.nom@email.com, +33 6 XX XX XX XX).
+## RÃƒÆ’Ã†â€™Ãƒâ€¹Ã¢â‚¬Â GLES SUR LES DONNÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°ES PERSONNELLES:
+- NE MODIFIE JAMAIS le nom, email, tÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©lÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©phone fournis par l'utilisateur.
+- Si l'email/tÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©lÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©phone ne sont PAS fournis, utilise un placeholder rÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©aliste (prenom.nom@email.com, +33 6 XX XX XX XX).
 - Si LinkedIn/GitHub ne sont PAS fournis, SUPPRIME ces lignes du header.
-- La localisation: utilise celle du candidat si fournie, sinon déduis depuis l'offre d'emploi.
+- La localisation: utilise celle du candidat si fournie, sinon dÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©duis depuis l'offre d'emploi.
 
-Réponds TOUJOURS en {$lang}. Retourne UNIQUEMENT du JSON valide, sans markdown, sans backticks.";
+RÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©ponds TOUJOURS en {$lang}. Retourne UNIQUEMENT du JSON valide, sans markdown, sans backticks.";
 
 $userPrompt = <<<PROMPT
-## TEMPLATE LATEX À REMPLIR:
+## TEMPLATE LATEX ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ REMPLIR:
 ```latex
 {$texTemplate}
 ```
@@ -304,13 +344,13 @@ $userPrompt = <<<PROMPT
 {$titleLine}
 {$personalInfoBlock}
 
-## RÉSUMÉ / CV BRUT DU CANDIDAT:
+## RÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°SUMÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â° / CV BRUT DU CANDIDAT:
 {$resume}
 
-## COMPÉTENCES:
+## COMPÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°TENCES:
 {$skills}
 
-## EXPÉRIENCES PROFESSIONNELLES:
+## EXPÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°RIENCES PROFESSIONNELLES:
 {$experiencesJson}
 
 ## STAGES:
@@ -331,87 +371,87 @@ $userPrompt = <<<PROMPT
 
 ---
 
-## INSTRUCTIONS GÉNÉRALES
+## INSTRUCTIONS GÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°NÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°RALES
 
-Tu dois retourner un JSON avec 3 clés: "latexCode", "motivationLetter", "candidacyEmail".
+Tu dois retourner un JSON avec 3 clÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©s: "latexCode", "motivationLetter", "candidacyEmail".
 
-### latexCode — Comment remplir le template
+### latexCode ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â Comment remplir le template
 
 1. **REMPLACER LES MARQUEURS %%...%%**:
-   - %%CANDIDATE_NAME%% → Nom complet du candidat (UTILISE EXACTEMENT le nom fourni)
-   - %%PHONE%% → Numéro de téléphone (UTILISE celui fourni par l'utilisateur. SEULEMENT si non fourni, utilise +33 6 XX XX XX XX)
-   - %%EMAIL%% → Adresse email (UTILISE celle fournie par l'utilisateur. SEULEMENT si non fournie, crée prenom.nom@email.com)
-   - %%LINKEDIN_HANDLE%% → Identifiant LinkedIn (UTILISE celui fourni. Si NON fourni, SUPPRIME la ligne \\href contenant linkedin)
-   - %%GITHUB_HANDLE%% → Identifiant GitHub (UTILISE celui fourni. Si NON fourni, SUPPRIME la ligne \\href contenant github)
-   - %%LOCATION%% → Ville, Pays (UTILISE la localisation fournie. Si NON fournie, déduis de l'offre d'emploi)
-   - %%SUMMARY_TEXT%% → Résumé professionnel de 2-3 phrases percutantes, adapté à l'offre
+   - %%CANDIDATE_NAME%% ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ Nom complet du candidat (UTILISE EXACTEMENT le nom fourni)
+   - %%PHONE%% ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ NumÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©ro de tÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©lÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©phone (UTILISE celui fourni par l'utilisateur. SEULEMENT si non fourni, utilise +33 6 XX XX XX XX)
+   - %%EMAIL%% ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ Adresse email (UTILISE celle fournie par l'utilisateur. SEULEMENT si non fournie, crÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©e prenom.nom@email.com)
+   - %%LINKEDIN_HANDLE%% ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ Identifiant LinkedIn (UTILISE celui fourni. Si NON fourni, SUPPRIME la ligne \\href contenant linkedin)
+   - %%GITHUB_HANDLE%% ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ Identifiant GitHub (UTILISE celui fourni. Si NON fourni, SUPPRIME la ligne \\href contenant github)
+   - %%LOCATION%% ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ Ville, Pays (UTILISE la localisation fournie. Si NON fournie, dÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©duis de l'offre d'emploi)
+   - %%SUMMARY_TEXT%% ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ RÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©sumÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â© professionnel de 2-3 phrases percutantes, adaptÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â© ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  l'offre
 
-2. **REMPLIR TOUTES LES SECTIONS — AUCUNE SECTION VIDE**:
-   - Pour chaque section, remplace les entrées placeholder par les vraies données.
-   - Les zones marquées "%% REPEAT for each..." indiquent qu'il faut DUPLIQUER le bloc pour chaque entrée.
-   - ADAPTE les descriptions à l'offre d'emploi.
-   - **SI UNE SECTION N'A PAS DE DONNÉES STRUCTURÉES**: d'abord cherche dans le CV brut du candidat. Si le CV brut ne contient pas ces infos, ALORS complète depuis l'offre d'emploi avec du contenu réaliste et cohérent.
-   - **EXPÉRIENCES**: UTILISE les expériences fournies par l'utilisateur comme BASE. Enrichis chaque expérience avec 3-5 bullet points. Chaque bullet point DOIT commencer par un verbe d'action fort (Développé, Conçu, Optimisé, Géré, Implémenté, Déployé, Analysé, Automatisé...). ADAPTE les descriptions pour inclure les mots-clés de l'offre d'emploi. Ajoute des métriques chiffrées quand possible (ex: +30\% de performance, 500 utilisateurs). Si AUCUNE expérience n'est fournie (ni structurée ni dans le CV brut), SUPPRIME la section expériences du document.
-   - **FORMATION**: UTILISE la formation fournie. Si pas de données dans les formulaires NI dans le CV brut, SUPPRIME la section formation.
-   - **COMPÉTENCES**: UTILISE les compétences fournies par l'utilisateur ET ajoute les mots-clés EXACTS de l'offre d'emploi. Organise par catégories pertinentes (Langages, Frameworks, Outils, Soft Skills...).
-   - **LANGUES**: Utilise celles fournies par l'utilisateur. Si aucune n'est fournie, déduis celles visibles dans le CV brut. En dernier recours, ajoute UNIQUEMENT la langue du document (Natif).
+2. **REMPLIR TOUTES LES SECTIONS ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â AUCUNE SECTION VIDE**:
+   - Pour chaque section, remplace les entrÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©es placeholder par les vraies donnÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©es.
+   - Les zones marquÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©es "%% REPEAT for each..." indiquent qu'il faut DUPLIQUER le bloc pour chaque entrÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©e.
+   - ADAPTE les descriptions ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  l'offre d'emploi.
+   - **SI UNE SECTION N'A PAS DE DONNÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°ES STRUCTURÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°ES**: d'abord cherche dans le CV brut du candidat. Si le CV brut ne contient pas ces infos, ALORS complÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨te depuis l'offre d'emploi avec du contenu rÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©aliste et cohÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rent.
+   - **EXPÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°RIENCES**: UTILISE les expÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©riences fournies par l'utilisateur comme BASE. Enrichis chaque expÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rience avec 3-5 bullet points. Chaque bullet point DOIT commencer par un verbe d'action fort (DÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©veloppÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©, ConÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â§u, OptimisÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©, GÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©, ImplÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©mentÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©, DÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©ployÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©, AnalysÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©, AutomatisÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©...). ADAPTE les descriptions pour inclure les mots-clÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©s de l'offre d'emploi. Ajoute des mÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©triques chiffrÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©es quand possible (ex: +30\% de performance, 500 utilisateurs). Si AUCUNE expÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rience n'est fournie (ni structurÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©e ni dans le CV brut), SUPPRIME la section expÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©riences du document.
+   - **FORMATION**: UTILISE la formation fournie. Si pas de donnÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©es dans les formulaires NI dans le CV brut, SUPPRIME la section formation.
+   - **COMPÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°TENCES**: UTILISE les compÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©tences fournies par l'utilisateur ET ajoute les mots-clÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©s EXACTS de l'offre d'emploi. Organise par catÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©gories pertinentes (Langages, Frameworks, Outils, Soft Skills...).
+   - **LANGUES**: Utilise celles fournies par l'utilisateur. Si aucune n'est fournie, dÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©duis celles visibles dans le CV brut. En dernier recours, ajoute UNIQUEMENT la langue du document (Natif).
    - **STAGES**: Si le candidat a des stages fournis, utilise-les. Sinon, supprime le bloc %%BEGIN_SECTION_STAGES%%...%%END_SECTION_STAGES%%.
-   - **CERTIFICATIONS**: Si aucune certification n'est fournie ET que le profil ne s'y prête pas, tu peux supprimer le bloc %%BEGIN_SECTION_CERTIFICATIONS%%...%%END_SECTION_CERTIFICATIONS%%.
+   - **CERTIFICATIONS**: Si aucune certification n'est fournie ET que le profil ne s'y prÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Âªte pas, tu peux supprimer le bloc %%BEGIN_SECTION_CERTIFICATIONS%%...%%END_SECTION_CERTIFICATIONS%%.
    - **PROJETS**: Si aucun projet n'est fourni, tu peux supprimer le bloc %%BEGIN_SECTION_PROJECTS%%...%%END_SECTION_PROJECTS%%.
    - NE LAISSE AUCUN marqueur %%...%% dans le document final.
    - NE LAISSE AUCUN placeholder comme "Description here", "Period", "Location", "Start -- End" etc.
 
-3. **QUALITÉ DE RÉDACTION CV PROFESSIONNELLE**:
-   - Chaque bullet point: verbe d'action + résultat concret + métriques si possible.
-   - Utilise les MOTS-CLÉS EXACTS de l'offre d'emploi dans les descriptions (optimisation ATS).
-   - Le résumé professionnel doit faire 2-3 phrases ciblées sur le poste visé.
-   - Ordonne les expériences du plus récent au plus ancien.
-   - Limite chaque expérience à 3-5 bullet points les plus pertinents pour l'offre.
-   - Évite les descriptions génériques — sois SPÉCIFIQUE et CONCRET.
+3. **QUALITÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â° DE RÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°DACTION CV PROFESSIONNELLE**:
+   - Chaque bullet point: verbe d'action + rÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©sultat concret + mÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©triques si possible.
+   - Utilise les MOTS-CLÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°S EXACTS de l'offre d'emploi dans les descriptions (optimisation ATS).
+   - Le rÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©sumÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â© professionnel doit faire 2-3 phrases ciblÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©es sur le poste visÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©.
+   - Ordonne les expÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©riences du plus rÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©cent au plus ancien.
+   - Limite chaque expÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rience ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  3-5 bullet points les plus pertinents pour l'offre.
+   - ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°vite les descriptions gÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©nÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©riques ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â sois SPÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°CIFIQUE et CONCRET.
 
-4. **PRÉSERVE LA STRUCTURE LATEX**:
-   - GARDE INTACTE tout le préambule: \\documentclass, \\usepackage, les commandes personnalisées (\\CVSubheading, \\resumeItem, etc.).
+4. **PRÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°SERVE LA STRUCTURE LATEX**:
+   - GARDE INTACTE tout le prÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©ambule: \\documentclass, \\usepackage, les commandes personnalisÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©es (\\CVSubheading, \\resumeItem, etc.).
    - NE MODIFIE PAS les commandes LaTeX custom et les environnements.
    - Le document doit commencer par \\documentclass et finir par \\end{document}.
 
-5. **ÉCHAPPEMENT DES CARACTÈRES SPÉCIAUX**:
-   - ÉCHAPPE dans le texte brut: & → \\& , % → \\% , \$ → \\\$ , # → \\# , ~ → \\textasciitilde{} , ^ → \\textasciicircum{}
-   - Pour le underscore (_): échappe-le dans le texte brut (_ → \\_) MAIS PAS à l'intérieur des arguments de \\href{} (les URLs doivent garder _ tel quel).
-   - EXCEPTION: Les accents français (é, è, ê, à, ù, ç, ô, î, ü, etc.) sont supportés NATIVEMENT par babel — NE LES ÉCHAPPE PAS.
-   - EXCEPTION: Les caractères { et } utilisés dans les commandes LaTeX ne doivent PAS être échappés.
-   - EXCEPTION: Le signe \$ dans les commandes LaTeX comme \$|\$ ne doit pas être échappé.
+5. **ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°CHAPPEMENT DES CARACTÃƒÆ’Ã†â€™Ãƒâ€¹Ã¢â‚¬Â RES SPÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°CIAUX**:
+   - ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°CHAPPE dans le texte brut: & ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ \\& , % ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ \\% , \$ ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ \\\$ , # ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ \\# , ~ ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ \\textasciitilde{} , ^ ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ \\textasciicircum{}
+   - Pour le underscore (_): ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©chappe-le dans le texte brut (_ ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ \\_) MAIS PAS ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  l'intÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rieur des arguments de \\href{} (les URLs doivent garder _ tel quel).
+   - EXCEPTION: Les accents franÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â§ais (ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©, ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨, ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Âª, ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â , ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¹, ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â§, ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â´, ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â®, ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¼, etc.) sont supportÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©s NATIVEMENT par babel ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â NE LES ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°CHAPPE PAS.
+   - EXCEPTION: Les caractÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨res { et } utilisÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©s dans les commandes LaTeX ne doivent PAS ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Âªtre ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©chappÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©s.
+   - EXCEPTION: Le signe \$ dans les commandes LaTeX comme \$|\$ ne doit pas ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Âªtre ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©chappÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©.
 
-6. **RÈGLES DE COMPILATION CRITIQUES**:
-   - N'utilise QUE les commandes LaTeX définies dans le préambule du template. Ne crée PAS de nouvelles commandes.
-   - N'utilise JAMAIS de commandes fontawesome comme \\faIcon{}, \\faGithub, \\faLinkedin, \\faEnvelope, etc. Utilise du texte simple ou des séparateurs.
-   - N'utilise JAMAIS \\textcolor{}{}. Utilise \\color{} qui est défini dans le template.
-   - NE MODIFIE PAS et NE SUPPRIME PAS les \\usepackage du préambule.
-   - Le résultat DOIT être compilable avec pdflatex sans AUCUNE erreur.
+6. **RÃƒÆ’Ã†â€™Ãƒâ€¹Ã¢â‚¬Â GLES DE COMPILATION CRITIQUES**:
+   - N'utilise QUE les commandes LaTeX dÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©finies dans le prÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©ambule du template. Ne crÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©e PAS de nouvelles commandes.
+   - N'utilise JAMAIS de commandes fontawesome comme \\faIcon{}, \\faGithub, \\faLinkedin, \\faEnvelope, etc. Utilise du texte simple ou des sÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©parateurs.
+   - N'utilise JAMAIS \\textcolor{}{}. Utilise \\color{} qui est dÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©fini dans le template.
+   - NE MODIFIE PAS et NE SUPPRIME PAS les \\usepackage du prÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©ambule.
+   - Le rÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©sultat DOIT ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Âªtre compilable avec pdflatex sans AUCUNE erreur.
 
 {$templateInstructions}
 
 ### motivationLetter
-- Lettre de motivation de 3-4 paragraphes, adaptée à l'offre.
-- Mentionne le nom de l'entreprise et le poste visé dès le premier paragraphe.
-- Met en avant les compétences les plus pertinentes pour le poste.
+- Lettre de motivation de 3-4 paragraphes, adaptÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©e ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  l'offre.
+- Mentionne le nom de l'entreprise et le poste visÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â© dÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨s le premier paragraphe.
+- Met en avant les compÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©tences les plus pertinentes pour le poste.
 - Signe avec "{$candidateName}".
 
 ### candidacyEmail
 - Email de candidature court et professionnel.
-- Commence par "Objet: Candidature — [Titre du poste exact depuis l'offre]".
+- Commence par "Objet: Candidature ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â [Titre du poste exact depuis l'offre]".
 - Signe avec "{$candidateName}".
 
-## RÈGLES STRICTES:
-- Les données de l'utilisateur (informations personnelles, expériences, compétences, formation) sont PRIORITAIRES. Ne les ignore JAMAIS.
-- ADAPTE et ENRICHIS les expériences de l'utilisateur pour l'offre d'emploi, mais ne les remplace PAS par des inventions.
-- N'INVENTE JAMAIS de fausses expériences, formations, entreprises ou diplômes. Enrichis ce qui existe, supprime ce qui manque.
+## RÃƒÆ’Ã†â€™Ãƒâ€¹Ã¢â‚¬Â GLES STRICTES:
+- Les donnÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©es de l'utilisateur (informations personnelles, expÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©riences, compÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©tences, formation) sont PRIORITAIRES. Ne les ignore JAMAIS.
+- ADAPTE et ENRICHIS les expÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©riences de l'utilisateur pour l'offre d'emploi, mais ne les remplace PAS par des inventions.
+- N'INVENTE JAMAIS de fausses expÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©riences, formations, entreprises ou diplÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â´mes. Enrichis ce qui existe, supprime ce qui manque.
 - Signe TOUJOURS avec "{$candidateName}", JAMAIS avec un placeholder.
 - AUCUN placeholder entre crochets [xxx] ou marqueur %%xxx%% ne doit rester.
-- Tu peux REFORMULER, AMÉLIORER et COMPLÉTER les descriptions existantes.
-- Si des sections sont vides et qu'aucune donnée ne peut être extraite, SUPPRIME ces sections au lieu de les inventer.
-- Formate les dates en "{$lang}" (ex: Jan. 2020 -- Déc. 2023 en français, Jan 2020 -- Dec 2023 en anglais).
+- Tu peux REFORMULER, AMÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°LIORER et COMPLÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°TER les descriptions existantes.
+- Si des sections sont vides et qu'aucune donnÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©e ne peut ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Âªtre extraite, SUPPRIME ces sections au lieu de les inventer.
+- Formate les dates en "{$lang}" (ex: Jan. 2020 -- DÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©c. 2023 en franÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â§ais, Jan 2020 -- Dec 2023 en anglais).
 - Chaque bullet point doit commencer par un verbe d'action FORT et faire 1-2 lignes max.
-- Les sections avec des données fournies doivent être remplies de manière professionnelle et pertinente.
+- Les sections avec des donnÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©es fournies doivent ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Âªtre remplies de maniÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨re professionnelle et pertinente.
 
 ## FORMAT JSON EXACT:
 {
@@ -438,7 +478,7 @@ foreach ($geminiModels as $geminiModel) {
             ],
         ],
         'generationConfig' => [
-            'temperature' => 0.2,
+            'temperature' => 0.7, // Augmenté pour éviter de garder le "même historique" et forcer la mise à jour des tournures
             'maxOutputTokens' => 32768,
             'responseMimeType' => 'application/json',
         ],
@@ -525,7 +565,7 @@ if (!empty($latexOutput)) {
     $latexOutput = preg_replace('/^\s*%%\s*(REPEAT|END REPEAT).*$/m', '', $latexOutput);
 
     // Remove leftover placeholder lines that AI may have kept
-    $placeholders = ['Description of achievement or responsibility', 'Description here', 'Period', 'Start -- End', 'Start - End', 'Institution Name', 'Company Name', 'Degree and Specialization', 'Job Title}{}', 'Internship Title}{}', 'Project Title', 'Certification Name', 'Technologies}{}'];
+    $placeholders = ['Description of achievement or responsibility', 'Description here', 'Period', 'Start -- End', 'Start - End', 'Start Date -- End Date', 'Institution Name', 'Company Name', 'Company Name, Location', 'Degree Name', 'Degree and Specialization', 'Job Title', 'Job Title}{}', 'Internship Title}{}', 'Project Title', 'Certification Name', 'Technologies}{}', 'task 1', 'task 2', 'detail 1', 'Skill Category', 'Skill 1, Skill 2, Skill 3', 'Language Name -- Proficiency'];
     foreach ($placeholders as $ph) {
         // Only remove if it appears as a standalone placeholder (not part of real content)
         $latexOutput = preg_replace('/^.*' . preg_quote($ph, '/') . '\s*$/m', '', $latexOutput);
@@ -538,10 +578,10 @@ if (!empty($latexOutput)) {
     }, $latexOutput);
 
     // Remove undefined fontawesome commands that AI may have introduced
-    $latexOutput = preg_replace('/\\\\fa[A-Z][a-zA-Z]*(?:\{[^}]*\})?/', '', $latexOutput);
+    if ($template !== 'one_and_half_column') { $latexOutput = preg_replace('/\\\\fa[A-Z][a-zA-Z]*(?:\{[^}]*\})?/', '', $latexOutput); }
 
     // Replace \textcolor{...}{...} with just the text (not defined in templates)
-    $latexOutput = preg_replace('/\\\\textcolor\{[^}]*\}\{([^}]*)\}/', '$1', $latexOutput);
+    if ($template !== 'one_and_half_column') { $latexOutput = preg_replace('/\\\\textcolor\{[^}]*\}\{([^}]*)\}/', '$1', $latexOutput); }
 
     // Clean up excessive blank lines (more than 2 consecutive)
     $latexOutput = preg_replace('/\n{4,}/', "\n\n\n", $latexOutput);
@@ -602,3 +642,12 @@ echo json_encode([
     ],
     'remaining' => $MAX_REQUESTS - $rateData['count'],
 ], JSON_UNESCAPED_UNICODE);
+
+
+
+
+
+
+
+
+

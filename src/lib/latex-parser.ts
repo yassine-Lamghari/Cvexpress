@@ -34,7 +34,7 @@ export interface ParsedSection {
 }
 
 /** Strip LaTeX commands to extract readable text */
-function stripLatex(s: string): string {
+export function stripLatex(s: string): string {
   return s
     .replace(/\\textbf\{([^}]*)\}/g, '$1')
     .replace(/\\textit\{([^}]*)\}/g, '$1')
@@ -63,7 +63,7 @@ function stripLatex(s: string): string {
 }
 
 /** Extract 4-arg commands like \CVSubheading{a}{b}{c}{d} */
-function extractEntries(raw: string, cmdPattern: RegExp): ParsedEntry[] {
+export function extractEntries(raw: string, cmdPattern: RegExp): ParsedEntry[] {
   const entries: ParsedEntry[] = [];
   const matches = [...raw.matchAll(cmdPattern)];
   
@@ -99,24 +99,41 @@ function extractEntries(raw: string, cmdPattern: RegExp): ParsedEntry[] {
 }
 
 /** Parse header section for all templates */
-function parseHeader(headerLatex: string): ParsedSection['headerFields'] {
+export function parseHeader(headerLatex: string): ParsedSection['headerFields'] {
   const fields: ParsedSection['headerFields'] = {};
   
-  // Name: look for \Huge or \huge with text
-  const nameMatch = headerLatex.match(/\\(?:Huge|huge)\s*(?:\\scshape\{)?([A-Za-zÀ-ÿ\s.-]+)/);
-  if (nameMatch) fields.name = nameMatch[1].trim();
+  // Name: look for \Huge or \huge with text, or \cvname{...}
+  const cvnameMatch = headerLatex.match(/\\cvname\{([^}]+)\}/);
+  if (cvnameMatch) {
+    fields.name = stripLatex(cvnameMatch[1]).trim();
+  } else {
+    const nameMatch = headerLatex.match(/\\(?:Huge|huge)\s*(?:\\scshape\{)?([A-Za-zÀ-ÿ\s.-]+)/);
+    if (nameMatch) fields.name = nameMatch[1].trim();
+  }
   
   // Phone
   const phoneMatch = headerLatex.match(/(\+?\d[\d\s().-]{6,})/);
   if (phoneMatch) fields.phone = phoneMatch[1].trim();
   
-  // Email - from mailto href
+  // Email - from mailto href or \faEnvelope line
   const emailMatch = headerLatex.match(/mailto:([^\s}]+)/);
-  if (emailMatch) fields.email = emailMatch[1].trim();
+  if (emailMatch) {
+    fields.email = emailMatch[1].trim();
+  } else {
+    // one_and_half_column: \cvpersonalinfolinewithicon{\faEnvelope}{ email }
+    const emailIconMatch = headerLatex.match(/\\faEnvelope\}\s*\{\s*([^}]+)\}/);
+    if (emailIconMatch) fields.email = emailIconMatch[1].trim();
+  }
   
   // LinkedIn
   const linkedinMatch = headerLatex.match(/linkedin\.com\/in\/([^\s}\\)]+)/);
-  if (linkedinMatch) fields.linkedin = `linkedin.com/in/${linkedinMatch[1]}`;
+  if (linkedinMatch) {
+    fields.linkedin = `linkedin.com/in/${linkedinMatch[1]}`;
+  } else {
+    // one_and_half_column: \cvpersonalinfolinewithicon{\faLinkedin}{ handle }
+    const linkedinIconMatch = headerLatex.match(/\\faLinkedin\}\s*\{\s*([^}]+)\}/);
+    if (linkedinIconMatch) fields.linkedin = linkedinIconMatch[1].trim();
+  }
   
   // GitHub
   const githubMatch = headerLatex.match(/github\.com\/([^\s}\\)]+)/);
@@ -126,15 +143,20 @@ function parseHeader(headerLatex: string): ParsedSection['headerFields'] {
   const websiteMatch = headerLatex.match(/\\href\{(https?:\/\/(?!.*(?:linkedin|github|mailto))[^}]+)\}/);
   if (websiteMatch) fields.website = websiteMatch[1];
   
-  // Location (rezume template)
+  // Location: rezume template or one_and_half_column (\faMapMarker line)
   const locationMatch = headerLatex.match(/Location:\s*([^\\}\n]+)/);
-  if (locationMatch) fields.location = locationMatch[1].trim();
+  if (locationMatch) {
+    fields.location = locationMatch[1].trim();
+  } else {
+    const locIconMatch = headerLatex.match(/\\faMapMarker(?:Alt)?\}\s*\{\s*([^}]+)\}/);
+    if (locIconMatch) fields.location = locIconMatch[1].trim();
+  }
   
   return fields;
 }
 
 /** Parse skills section */
-function parseSkills(raw: string): SkillGroup[] {
+export function parseSkills(raw: string): SkillGroup[] {
   const groups: SkillGroup[] = [];
   
   // Pattern: \textbf{Category}: Values or \textbf{\normalsize{Category:}} \normalsize{Values}
@@ -182,9 +204,24 @@ function detectSectionType(name: string, raw: string): ParsedSection['type'] {
     return 'entries';
   }
   
+  // one_and_half_column: \cvitem with \cvtitle inside = entries
+  if (/\\cvitem\s*\{/.test(raw) && /\\cvtitle\s*\{/.test(raw)) {
+    return 'entries';
+  }
+  
   // Has only resumeItem / plain items
   if (/\\resumeItem\s*\{/.test(raw) || /\\item\s/.test(raw)) {
     return 'items';
+  }
+  
+  // one_and_half_column: \cvitem with \cvheadingstyle inside = skills
+  if (/\\cvitem\s*\{/.test(raw) && /\\cvheadingstyle\s*\{/.test(raw)) {
+    return 'skills';
+  }
+  
+  // one_and_half_column: plain \cvitem without \cvtitle = text
+  if (/\\cvitem\s*\{/.test(raw) && !/\\cvtitle/.test(raw)) {
+    return 'text';
   }
   
   return 'text';
@@ -201,9 +238,9 @@ export function parseLaTeXSections(latexCode: string): ParsedSection[] {
   if (!bodyMatch) return [];
   const body = bodyMatch[1];
   
-  // Split by \section{...}, preserving section names
-  // Handle both \section{Name} and \section{\color{blue}Name}
-  const sectionRegex = /\\section\{(?:\\color\{[^}]*\})?\s*([^}]+)\}/g;
+  // Split by \section{...} or \cvsection{...}, preserving section names
+  // Handle both \section{Name}, \section{\color{blue}Name}, and \cvsection{Name}
+  const sectionRegex = /\\(?:section|cvsection)\{(?:\\color\{[^}]*\})?\s*([^}]+)\}/g;
   const sectionMatches = [...body.matchAll(sectionRegex)];
   
   // Extract header (everything before first \section)
@@ -272,12 +309,59 @@ export function parseLaTeXSections(latexCode: string): ParsedSection[] {
             };
           });
         }
+        // one_and_half_column: \cvitem{\cvdurationstyle{date}}{\cvtitle{title}\n subtitle \begin{itemize}...}
+        if (!entries.length) {
+          const cvitemRegex = /\\cvitem\s*\{([\s\S]*?)\}\s*\{([\s\S]*?)(?=\\cvitem\s*\{|\\cvsection\s*\{|\\end\{document\}|$)/g;
+          const cvitemMatches = [...rawLatex.matchAll(cvitemRegex)];
+          for (const m of cvitemMatches) {
+            const leftCol = m[1]; // contains \cvdurationstyle{date}
+            const rightCol = m[2]; // contains \cvtitle{title}, subtitle, \begin{itemize}...
+            
+            // Extract date from \cvdurationstyle{...}
+            const dateMatch = leftCol.match(/\\cvdurationstyle\{([^}]*)\}/);
+            const date = dateMatch ? stripLatex(dateMatch[1]) : stripLatex(leftCol);
+            
+            // Extract title from \cvtitle{...}
+            const titleMatch = rightCol.match(/\\cvtitle\{([^}]*)\}/);
+            if (!titleMatch) continue; // skip non-entry cvitems
+            const title = stripLatex(titleMatch[1]);
+            
+            // Extract subtitle (text after \cvtitle{} and before \begin{itemize})
+            const afterTitle = rightCol.substring((titleMatch.index || 0) + titleMatch[0].length);
+            const subtitleMatch = afterTitle.match(/^\s*([^\\\n][^\n]*)/);
+            const subtitle = subtitleMatch ? stripLatex(subtitleMatch[1]) : '';
+            
+            // Extract bullet points from \begin{itemize}...\end{itemize}
+            const bullets: string[] = [];
+            const itemizeMatch = rightCol.match(/\\begin\{itemize\}([\s\S]*?)\\end\{itemize\}/);
+            if (itemizeMatch) {
+              const itemMatches = itemizeMatch[1].matchAll(/\\item\s+([^\n\\]+)/g);
+              for (const im of itemMatches) {
+                const t = stripLatex(im[1]);
+                if (t) bullets.push(t);
+              }
+            }
+            
+            entries.push({ title, subtitle, date, location: '', bullets });
+          }
+        }
         section.entries = entries;
         break;
       }
-      case 'skills':
-        section.skillGroups = parseSkills(rawLatex);
+      case 'skills': {
+        let groups = parseSkills(rawLatex);
+        // one_and_half_column: \cvitem{\cvheadingstyle{Category}}{Values}
+        if (!groups.length) {
+          const cvSkillMatches = rawLatex.matchAll(/\\cvitem\s*\{\s*\\cvheadingstyle\{([^}]*)\}\s*\}\s*\{\s*([^}]*)\}/g);
+          for (const m of cvSkillMatches) {
+            const category = m[1].trim();
+            const values = stripLatex(m[2]);
+            if (category && values) groups.push({ category, values });
+          }
+        }
+        section.skillGroups = groups;
         break;
+      }
       case 'items':
         section.items = parseItems(rawLatex);
         break;

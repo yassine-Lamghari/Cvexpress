@@ -251,7 +251,7 @@ export const useCVStore = create<CVStore>()(
       migrate: (persisted: unknown, version: number) => {
         const state = persisted as Record<string, unknown>;
         if (version < 2) {
-          const validTemplates = ['professional', 'charles', 'rezume'];
+          const validTemplates = ['professional', 'charles', 'rezume', 'modern_image', 'one_and_half_column'];
           if (!validTemplates.includes(state.selectedTemplate as string)) {
             state.selectedTemplate = 'professional';
           }
