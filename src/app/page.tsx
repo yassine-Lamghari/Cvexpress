@@ -27,6 +27,8 @@ export default function HomePage() {
     jobOffer,
     cvData,
     selectedTemplate,
+    themeColor,
+    fontFamily,
     locale,
     isGenerating,
     setIsGenerating,
@@ -58,6 +60,8 @@ export default function HomePage() {
           jobOffer,
           locale,
           template: selectedTemplate,
+          themeColor,
+          fontFamily,
           candidateName: `${cvData.personalInfo.firstName} ${cvData.personalInfo.lastName}`.trim(),
           personalTitle: cvData.personalInfo.title || '',
           personalInfo: cvData.personalInfo,
@@ -208,7 +212,7 @@ export default function HomePage() {
           <div className="max-w-2xl mx-auto px-5 text-center">
             <h1 className="text-3xl sm:text-4xl font-semibold text-gray-900 leading-tight">
               {t('home.heroTitle')}{' '}
-              <span className="text-blue-600">{t('home.heroTitleHighlight')}</span>
+              <span className="text-amber-500">{t('home.heroTitleHighlight')}</span>
             </h1>
           </div>
         </section>

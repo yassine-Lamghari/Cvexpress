@@ -119,7 +119,11 @@
     "sidebarTips": "Conseils",
     "sidebarTip1": "Plus vous détaillez votre parcours, meilleur sera le CV généré.",
     "sidebarTip2": "Collez l'offre d'emploi complète pour un résultat optimal.",
-    "sidebarTip3": "Vous pouvez revenir sur une étape à tout moment."
+    "sidebarTip3": "Vous pouvez revenir sur une étape à tout moment.",
+    "importGithub": "Importer depuis GitHub",
+    "githubUsername": "Nom d'utilisateur GitHub",
+    "importing": "Importation...",
+    "githubUrl": "Lien du profil GitHub"
   },
   "results": {
     "cvTitle": "CV Adapté",

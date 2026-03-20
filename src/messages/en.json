@@ -119,7 +119,11 @@
     "sidebarTips": "Tips",
     "sidebarTip1": "The more you detail your background, the better the generated CV.",
     "sidebarTip2": "Paste the full job offer for optimal results.",
-    "sidebarTip3": "You can go back to any step at any time."
+    "sidebarTip3": "You can go back to any step at any time.",
+    "importGithub": "Import from GitHub",
+    "githubUsername": "GitHub Username",
+    "importing": "Importing...",
+    "githubUrl": "GitHub Profile URL"
   },
   "results": {
     "cvTitle": "Tailored CV",

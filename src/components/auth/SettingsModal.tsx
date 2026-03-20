@@ -91,19 +91,19 @@ export default function SettingsModal({ open, onClose }: SettingsModalProps) {
           <h2 className="text-sm font-semibold text-gray-900 mb-2 px-2">Paramètres</h2>
           <button
             onClick={() => { setActiveTab('profile'); setMessage(null); }}
-            className={`flex items-center gap-2 text-sm px-3 py-2 rounded-lg transition-colors ${activeTab === 'profile' ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-600 hover:bg-gray-100'}`}
+            className={`flex items-center gap-2 text-sm px-3 py-2 rounded-lg transition-colors ${activeTab === 'profile' ? 'bg-amber-50 text-amber-700 font-medium' : 'text-gray-600 hover:bg-gray-100'}`}
           >
             <User className="w-4 h-4" /> Profil
           </button>
           <button
             onClick={() => { setActiveTab('security'); setMessage(null); }}
-            className={`flex items-center gap-2 text-sm px-3 py-2 rounded-lg transition-colors ${activeTab === 'security' ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-600 hover:bg-gray-100'}`}
+            className={`flex items-center gap-2 text-sm px-3 py-2 rounded-lg transition-colors ${activeTab === 'security' ? 'bg-amber-50 text-amber-700 font-medium' : 'text-gray-600 hover:bg-gray-100'}`}
           >
             <Lock className="w-4 h-4" /> Sécurité
           </button>
           <button
             onClick={() => { setActiveTab('advanced'); setMessage(null); }}
-            className={`flex items-center gap-2 text-sm px-3 py-2 rounded-lg transition-colors ${activeTab === 'advanced' ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-600 hover:bg-gray-100'}`}
+            className={`flex items-center gap-2 text-sm px-3 py-2 rounded-lg transition-colors ${activeTab === 'advanced' ? 'bg-amber-50 text-amber-700 font-medium' : 'text-gray-600 hover:bg-gray-100'}`}
           >
             <Settings className="w-4 h-4" /> Avancés
           </button>
@@ -128,7 +128,7 @@ export default function SettingsModal({ open, onClose }: SettingsModalProps) {
                     type="text"
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
                   />
                 </div>
                 <div>
@@ -137,7 +137,7 @@ export default function SettingsModal({ open, onClose }: SettingsModalProps) {
                     type="text"
                     value={lastName}
                     onChange={(e) => setLastName(e.target.value)}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
                   />
                 </div>
                 <div>
@@ -180,7 +180,7 @@ export default function SettingsModal({ open, onClose }: SettingsModalProps) {
                     minLength={6}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
                   />
                 </div>
                 <div>
@@ -191,7 +191,7 @@ export default function SettingsModal({ open, onClose }: SettingsModalProps) {
                     minLength={6}
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
                   />
                 </div>
 

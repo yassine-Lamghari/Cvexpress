@@ -104,14 +104,14 @@ export default function AuthModal({ open, onClose }: AuthModalProps) {
                 placeholder={t('auth.firstName')}
                 value={firstName}
                 onChange={(e) => setFirstName(e.target.value)}
-                className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
               />
               <input
                 type="text"
                 placeholder={t('auth.lastName')}
                 value={lastName}
                 onChange={(e) => setLastName(e.target.value)}
-                className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
               />
             </div>
           )}
@@ -122,7 +122,7 @@ export default function AuthModal({ open, onClose }: AuthModalProps) {
             placeholder={t('auth.email')}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
           />
 
           <input
@@ -132,7 +132,7 @@ export default function AuthModal({ open, onClose }: AuthModalProps) {
             placeholder={t('auth.password')}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
           />
 
           {error && (
@@ -152,7 +152,7 @@ export default function AuthModal({ open, onClose }: AuthModalProps) {
           {mode === 'login' ? t('auth.noAccount') : t('auth.hasAccount')}{' '}
           <button
             onClick={() => { setMode(mode === 'login' ? 'signup' : 'login'); setError(null); }}
-            className="text-blue-600 hover:underline"
+            className="text-amber-600 hover:underline"
           >
             {mode === 'login' ? t('auth.createAccount') : t('auth.loginHere')}
           </button>

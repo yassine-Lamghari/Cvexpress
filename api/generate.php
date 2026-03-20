@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 header('Content-Type: application/json');
 require_once __DIR__ . '/cors.php';
 
@@ -331,7 +331,11 @@ $systemPrompt = "Tu es un expert en rÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©d
 - Si LinkedIn/GitHub ne sont PAS fournis, SUPPRIME ces lignes du header.
 - La localisation: utilise celle du candidat si fournie, sinon dÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©duis depuis l'offre d'emploi.
 
-RÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©ponds TOUJOURS en {$lang}. Retourne UNIQUEMENT du JSON valide, sans markdown, sans backticks.";
+RÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©ponds TOUJOURS en {$lang}. ## REGLES LATEX CRITIQUES :
+- ECHAPPE IMPERATIVEMENT tous les caracteres speciaux (comme & qui devient \&, % qui devient \%, $ qui devient \$, # qui devient \#, _ qui devient \_).
+- VERIFIE bien l'equilibre de toutes tes accolades { }. Ne ferme jamais une accolade sans l'avoir ouverte.
+
+Retourne UNIQUEMENT du JSON valide, sans markdown, sans backticks.";
 
 $userPrompt = <<<PROMPT
 ## TEMPLATE LATEX ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ REMPLIR:

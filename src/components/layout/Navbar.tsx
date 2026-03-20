@@ -49,8 +49,12 @@ export default function Navbar() {
     <>
       <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-sm border-b border-gray-100">
         <div className="max-w-2xl mx-auto px-5 flex items-center justify-between h-14">
-          <a href="/" className="text-base font-semibold text-gray-900">
-            CVzzer
+          <a href="/" className="flex items-center gap-2 text-base font-semibold text-gray-900">
+            <span className="relative inline-flex h-7 w-7 items-center justify-center rounded-md bg-gray-900 text-white shadow-sm ring-1 ring-black/10">
+              <span className="absolute -left-0.5 top-1 h-5 w-1 rounded-r bg-amber-500" aria-hidden="true" />
+              <span className="text-[11px] font-bold tracking-tight">CZ</span>
+            </span>
+            <span className="tracking-tight">CVzzer</span>
           </a>
           <div className="flex items-center gap-3">
             <button
@@ -76,7 +80,7 @@ export default function Navbar() {
                         referrerPolicy="no-referrer"
                       />
                     ) : (
-                      <div className="w-7 h-7 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-semibold text-xs border border-blue-200">
+                      <div className="w-7 h-7 bg-amber-100 text-amber-700 rounded-full flex items-center justify-center font-semibold text-xs border border-amber-200">
                         {getDisplayName().charAt(0).toUpperCase()}
                       </div>
                     )}

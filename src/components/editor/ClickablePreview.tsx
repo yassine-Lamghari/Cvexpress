@@ -55,8 +55,8 @@ export default function ClickablePreview({ latexCode, template, photo, locale, o
             onClick={(e) => handleZoneClick(zone.section, e)}
             className={`absolute left-[4%] right-[4%] group cursor-pointer transition-all duration-150 ${
               activeSection === zone.section.id
-                ? 'bg-blue-500/15 border border-blue-500/50 rounded-sm'
-                : 'hover:bg-blue-500/10 hover:border hover:border-blue-400/40 hover:rounded-sm'
+                ? 'bg-amber-500/15 border border-amber-500/50 rounded-sm'
+                : 'hover:bg-amber-500/10 hover:border hover:border-amber-400/40 hover:rounded-sm'
             }`}
             style={{
               top: `${zone.top}%`,
@@ -68,8 +68,8 @@ export default function ClickablePreview({ latexCode, template, photo, locale, o
             <span
               className={`absolute top-0.5 left-1 text-[10px] font-medium px-1.5 py-0.5 rounded transition-opacity ${
                 activeSection === zone.section.id
-                  ? 'bg-blue-500 text-white opacity-100'
-                  : 'bg-blue-500/80 text-white opacity-0 group-hover:opacity-100'
+                  ? 'bg-amber-500 text-black opacity-100'
+                  : 'bg-amber-500/80 text-black opacity-0 group-hover:opacity-100'
               }`}
             >
               {getLabel(zone.section.name)}

@@ -16,7 +16,7 @@ export default function TemplatesPage() {
   const accentMap: Record<string, string> = {
     professional: 'bg-[#0E5484]',
     charles: 'bg-gray-800',
-    rezume: 'bg-blue-600',
+    rezume: 'bg-amber-500',
     modern_image: 'bg-[#0E5484]',
     one_and_half_column: 'bg-black',
   };
@@ -50,7 +50,7 @@ export default function TemplatesPage() {
               <div className="space-y-5 mb-8">
                 {templateList.map((tmpl) => {
                   const isSelected = selectedTemplate === tmpl.id;
-                  const accent = accentMap[tmpl.id] || 'bg-blue-600';
+                  const accent = accentMap[tmpl.id] || 'bg-amber-500';
 
                   return (
                     <article

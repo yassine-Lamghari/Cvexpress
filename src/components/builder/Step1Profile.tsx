@@ -1,7 +1,7 @@
 ﻿'use client';
 
 import { useState, useRef } from 'react';
-import { Plus, X, ChevronDown, ChevronUp, Briefcase, GraduationCap, Building2 } from 'lucide-react';
+import { Github } from 'lucide-react';
 import { useCVStore } from '@/stores/cv-store';
 import { useTranslations } from '@/lib/i18n';
 
@@ -10,20 +10,12 @@ const inputCls = 'w-full px-3 py-2 border border-gray-200 rounded-md focus:ring-
 export default function Step1Profile() {
   const { t } = useTranslations();
   const {
-    cvData, setPersonalInfo, rawResume, setRawResume,
-    addExperience, removeExperience, updateExperience,
-    addEducation, removeEducation, updateEducation,
-    addStage, removeStage, updateStage,
+    cvData, setPersonalInfo, rawResume, setRawResume
   } = useCVStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [openSections, setOpenSections] = useState<Record<string, boolean>>({
-    experiences: (cvData.experiences ?? []).length > 0,
-    education: (cvData.education ?? []).length > 0,
-    stages: (cvData.stages ?? []).length > 0,
-  });
-
-  const toggle = (key: string) => setOpenSections((s) => ({ ...s, [key]: !s[key] }));
+  const [githubUrl, setGithubUrl] = useState('');
+  const [isImportingGithub, setIsImportingGithub] = useState(false);
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -38,6 +30,62 @@ export default function Step1Profile() {
   const removePhoto = () => {
     setPersonalInfo({ photo: '' });
     if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const handleGithubImport = async () => {
+    if (!githubUrl.trim()) return;
+    
+    // Extract username from URL or use as is if it's just a username
+    let username = githubUrl.trim();
+    if (username.includes('github.com/')) {
+      const parts = username.split('github.com/');
+      username = parts[1].split('/')[0]; // Get the part right after github.com/
+    }
+    // Remove any special characters or query params
+    username = username.replace(/[^a-zA-Z0-9-]/g, '');
+
+    if (!username) return;
+
+    setIsImportingGithub(true);
+    try {
+      const userRes = await fetch(`https://api.github.com/users/${username}`);
+      if (!userRes.ok) throw new Error('User not found');
+      const userData = await userRes.json();
+      
+      const reposRes = await fetch(`https://api.github.com/users/${username}/repos?sort=updated&per_page=10`);
+      const reposData = await reposRes.json();
+
+      let githubSummary = `--- Profil GitHub de ${userData.name || userData.login} ---\n`;
+      githubSummary += `Bio: ${userData.bio || 'Non renseignée'}\n`;
+      if (userData.company) githubSummary += `Entreprise: ${userData.company}\n`;
+      if (userData.blog) githubSummary += `Site web: ${userData.blog}\n`;
+      githubSummary += `Followers: ${userData.followers}\n`;
+      githubSummary += `Public repos: ${userData.public_repos}\n\n`;
+      
+      if (reposData && reposData.length > 0) {
+        githubSummary += `Projets:\n`;
+        reposData.forEach((repo: any) => {
+          if (!repo.fork) {
+            githubSummary += `- ${repo.name} ${repo.language ? '(' + repo.language + ')' : ''}: ${repo.description || 'Pas de description'}\n`;
+          }
+        });
+      }
+
+      setRawResume(rawResume ? rawResume + '\n\n' + githubSummary : githubSummary);
+      
+      if (!cvData.personalInfo.lastName && !cvData.personalInfo.firstName && userData.name) {
+        const parts = userData.name.split(' ');
+        setPersonalInfo({ 
+          firstName: parts[0] || '', 
+          lastName: parts.slice(1).join(' ') || ''
+        });
+      }
+      
+    } catch (err) {
+      alert("Erreur lors de l'importation. Vérifiez le nom d'utilisateur GitHub.");
+    } finally {
+      setIsImportingGithub(false);
+    }
   };
 
   return (
@@ -114,6 +162,34 @@ export default function Step1Profile() {
         </div>
       </div>
 
+      {/* GitHub Import */}
+      <div className="bg-gray-50 border border-gray-200 rounded-md p-5">
+        <div className="flex items-center gap-2 mb-3">
+          <Github className="w-5 h-5 text-gray-700" />
+          <h4 className="text-sm font-semibold text-gray-900">{t('builder.importGithub') || 'Import from GitHub'}</h4>
+        </div>
+        <p className="text-xs text-gray-500 mb-4">
+          Importez automatiquement vos projets et compétences depuis votre profil GitHub. Les données seront ajoutées dans la section bloc de texte ci-dessous.
+        </p>
+        <div className="flex gap-2">
+          <input 
+            type="text" 
+            value={githubUrl}
+            onChange={(e) => setGithubUrl(e.target.value)}
+            className="flex-1 px-3 py-2 border border-gray-200 rounded-md focus:ring-1 focus:ring-gray-400 outline-none text-sm" 
+            placeholder={t('builder.githubUrl') || 'https://github.com/username'} 
+          />
+          <button 
+            type="button" 
+            onClick={handleGithubImport}
+            disabled={isImportingGithub || !githubUrl.trim()}
+            className="px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-md hover:bg-gray-800 disabled:opacity-50 transition-colors"
+          >
+            {isImportingGithub ? (t('builder.importing') || 'Importing...') : (t('builder.importGithub') || 'Import')}
+          </button>
+        </div>
+      </div>
+
       {/* Raw Resume */}
       <div>
         <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-4">
@@ -122,194 +198,13 @@ export default function Step1Profile() {
         <textarea
           value={rawResume}
           onChange={(e) => setRawResume(e.target.value)}
-          rows={8}
-          className={`${inputCls} resize-y`}
+          rows={16}
+          className={`${inputCls} resize-y h-96`}
           placeholder={t('builder.resumePlaceholder')}
         />
         <p className="text-xs text-gray-400 mt-1.5">{t('builder.resumeHint')}</p>
       </div>
 
-      {/* ── Experiences ── */}
-      <AccordionSection
-        icon={<Briefcase className="w-4 h-4" />}
-        title={t('builder.experiences')}
-        count={(cvData.experiences ?? []).length}
-        open={openSections.experiences}
-        onToggle={() => toggle('experiences')}
-      >
-        {(cvData.experiences ?? []).map((exp) => (
-          <EntryCard key={exp.id} onRemove={() => removeExperience(exp.id)}>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">{t('builder.expJobTitle')}</label>
-                <input type="text" value={exp.jobTitle} onChange={(e) => updateExperience(exp.id, { jobTitle: e.target.value })} className={inputCls} placeholder={t('builder.expJobTitlePh')} />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">{t('builder.expCompany')}</label>
-                <input type="text" value={exp.company} onChange={(e) => updateExperience(exp.id, { company: e.target.value })} className={inputCls} placeholder={t('builder.expCompanyPh')} />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">{t('builder.expLocation')}</label>
-                <input type="text" value={exp.location || ''} onChange={(e) => updateExperience(exp.id, { location: e.target.value })} className={inputCls} placeholder="Paris, France" />
-              </div>
-              <div className="flex gap-2">
-                <div className="flex-1">
-                  <label className="block text-xs font-medium text-gray-500 mb-1">{t('builder.startDate')}</label>
-                  <input type="text" value={exp.startDate} onChange={(e) => updateExperience(exp.id, { startDate: e.target.value })} className={inputCls} placeholder="Jan. 2022" />
-                </div>
-                <div className="flex-1">
-                  <label className="block text-xs font-medium text-gray-500 mb-1">{t('builder.endDate')}</label>
-                  <input type="text" value={exp.endDate} onChange={(e) => updateExperience(exp.id, { endDate: e.target.value })} className={inputCls} placeholder={t('builder.present')} />
-                </div>
-              </div>
-            </div>
-            <div className="mt-3">
-              <label className="block text-xs font-medium text-gray-500 mb-1">{t('builder.expDescription')}</label>
-              <textarea value={exp.description} onChange={(e) => updateExperience(exp.id, { description: e.target.value })} rows={3} className={`${inputCls} resize-y`} placeholder={t('builder.expDescriptionPh')} />
-            </div>
-          </EntryCard>
-        ))}
-        <button
-          onClick={() => addExperience({ id: crypto.randomUUID(), jobTitle: '', company: '', location: '', startDate: '', endDate: '', description: '' })}
-          className="w-full flex items-center justify-center gap-2 py-2.5 border border-dashed border-gray-300 rounded-md text-sm text-gray-500 hover:text-gray-900 hover:border-gray-400 transition-colors"
-        >
-          <Plus className="w-4 h-4" /> {t('builder.addExperience')}
-        </button>
-      </AccordionSection>
-
-      {/* ── Education ── */}
-      <AccordionSection
-        icon={<GraduationCap className="w-4 h-4" />}
-        title={t('builder.education')}
-        count={(cvData.education ?? []).length}
-        open={openSections.education}
-        onToggle={() => toggle('education')}
-      >
-        {(cvData.education ?? []).map((edu) => (
-          <EntryCard key={edu.id} onRemove={() => removeEducation(edu.id)}>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">{t('builder.eduDegree')}</label>
-                <input type="text" value={edu.degree} onChange={(e) => updateEducation(edu.id, { degree: e.target.value })} className={inputCls} placeholder={t('builder.eduDegreePh')} />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">{t('builder.eduSchool')}</label>
-                <input type="text" value={edu.school} onChange={(e) => updateEducation(edu.id, { school: e.target.value })} className={inputCls} placeholder={t('builder.eduSchoolPh')} />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">{t('builder.expLocation')}</label>
-                <input type="text" value={edu.location || ''} onChange={(e) => updateEducation(edu.id, { location: e.target.value })} className={inputCls} placeholder="Paris, France" />
-              </div>
-              <div className="flex gap-2">
-                <div className="flex-1">
-                  <label className="block text-xs font-medium text-gray-500 mb-1">{t('builder.startDate')}</label>
-                  <input type="text" value={edu.startDate} onChange={(e) => updateEducation(edu.id, { startDate: e.target.value })} className={inputCls} placeholder="Sept. 2020" />
-                </div>
-                <div className="flex-1">
-                  <label className="block text-xs font-medium text-gray-500 mb-1">{t('builder.endDate')}</label>
-                  <input type="text" value={edu.endDate} onChange={(e) => updateEducation(edu.id, { endDate: e.target.value })} className={inputCls} placeholder="Juin 2024" />
-                </div>
-              </div>
-            </div>
-            <div className="mt-3">
-              <label className="block text-xs font-medium text-gray-500 mb-1">{t('builder.eduDescription')}</label>
-              <textarea value={edu.description || ''} onChange={(e) => updateEducation(edu.id, { description: e.target.value })} rows={2} className={`${inputCls} resize-y`} placeholder={t('builder.eduDescriptionPh')} />
-            </div>
-          </EntryCard>
-        ))}
-        <button
-          onClick={() => addEducation({ id: crypto.randomUUID(), degree: '', school: '', location: '', startDate: '', endDate: '', description: '' })}
-          className="w-full flex items-center justify-center gap-2 py-2.5 border border-dashed border-gray-300 rounded-md text-sm text-gray-500 hover:text-gray-900 hover:border-gray-400 transition-colors"
-        >
-          <Plus className="w-4 h-4" /> {t('builder.addEducation')}
-        </button>
-      </AccordionSection>
-
-      {/* ── Stages / Internships ── */}
-      <AccordionSection
-        icon={<Building2 className="w-4 h-4" />}
-        title={t('builder.stages')}
-        count={(cvData.stages ?? []).length}
-        open={openSections.stages}
-        onToggle={() => toggle('stages')}
-      >
-        {(cvData.stages ?? []).map((stg) => (
-          <EntryCard key={stg.id} onRemove={() => removeStage(stg.id)}>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">{t('builder.expJobTitle')}</label>
-                <input type="text" value={stg.jobTitle} onChange={(e) => updateStage(stg.id, { jobTitle: e.target.value })} className={inputCls} placeholder={t('builder.stageJobTitlePh')} />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">{t('builder.expCompany')}</label>
-                <input type="text" value={stg.company} onChange={(e) => updateStage(stg.id, { company: e.target.value })} className={inputCls} placeholder={t('builder.expCompanyPh')} />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">{t('builder.expLocation')}</label>
-                <input type="text" value={stg.location || ''} onChange={(e) => updateStage(stg.id, { location: e.target.value })} className={inputCls} placeholder="Paris, France" />
-              </div>
-              <div className="flex gap-2">
-                <div className="flex-1">
-                  <label className="block text-xs font-medium text-gray-500 mb-1">{t('builder.startDate')}</label>
-                  <input type="text" value={stg.startDate} onChange={(e) => updateStage(stg.id, { startDate: e.target.value })} className={inputCls} placeholder="Fév. 2023" />
-                </div>
-                <div className="flex-1">
-                  <label className="block text-xs font-medium text-gray-500 mb-1">{t('builder.endDate')}</label>
-                  <input type="text" value={stg.endDate} onChange={(e) => updateStage(stg.id, { endDate: e.target.value })} className={inputCls} placeholder="Juil. 2023" />
-                </div>
-              </div>
-            </div>
-            <div className="mt-3">
-              <label className="block text-xs font-medium text-gray-500 mb-1">{t('builder.expDescription')}</label>
-              <textarea value={stg.description} onChange={(e) => updateStage(stg.id, { description: e.target.value })} rows={3} className={`${inputCls} resize-y`} placeholder={t('builder.expDescriptionPh')} />
-            </div>
-          </EntryCard>
-        ))}
-        <button
-          onClick={() => addStage({ id: crypto.randomUUID(), jobTitle: '', company: '', location: '', startDate: '', endDate: '', description: '' })}
-          className="w-full flex items-center justify-center gap-2 py-2.5 border border-dashed border-gray-300 rounded-md text-sm text-gray-500 hover:text-gray-900 hover:border-gray-400 transition-colors"
-        >
-          <Plus className="w-4 h-4" /> {t('builder.addStage')}
-        </button>
-      </AccordionSection>
-    </div>
-  );
-}
-
-/* â”€â”€ Reusable sub-components â”€â”€ */
-
-function AccordionSection({ icon, title, count, open, onToggle, children }: {
-  icon: React.ReactNode; title: string; count: number; open: boolean; onToggle: () => void; children: React.ReactNode;
-}) {
-  return (
-    <div className="border border-gray-200 rounded-md overflow-hidden">
-      <button
-        type="button"
-        onClick={onToggle}
-        className="w-full flex items-center gap-3 px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors text-left"
-      >
-        <span className="text-gray-500">{icon}</span>
-        <span className="text-sm font-semibold text-gray-900 uppercase tracking-wider flex-1">{title}</span>
-        {count > 0 && <span className="text-xs font-medium text-white bg-gray-900 rounded-full w-5 h-5 flex items-center justify-center">{count}</span>}
-        {open ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
-      </button>
-      {open && <div className="p-4 space-y-4">{children}</div>}
-    </div>
-  );
-}
-
-function EntryCard({ children, onRemove }: { children: React.ReactNode; onRemove: () => void }) {
-  return (
-    <div className="relative bg-white border border-gray-100 rounded-md p-4 group">
-      <button
-        type="button"
-        onClick={onRemove}
-        className="absolute top-2 right-2 p-1 text-gray-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
-        aria-label="Remove"
-      >
-        <X className="w-4 h-4" />
-      </button>
-      {children}
     </div>
   );
 }

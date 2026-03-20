@@ -19,6 +19,11 @@ export const metadata: Metadata = {
   title: "CVzzer — Créez votre CV adapté à chaque offre d'emploi",
   description:
     "Créez votre CV, lettre de motivation et email de candidature adaptés à chaque offre d'emploi grâce à l'IA — 100% gratuit. Templates professionnels, PDF téléchargeable.",
+  icons: {
+    icon: "/icon.svg",
+    shortcut: "/icon.svg",
+    apple: "/icon.svg",
+  },
   keywords: [
     "CV gratuit",
     "lettre de motivation",
