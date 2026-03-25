@@ -1,0 +1,35 @@
+\documentclass[a4paper,10pt]{article}
+\usepackage{xcolor}
+\usepackage{fontawesome5}
+\usepackage{graphicx}
+\usepackage{calc}
+\definecolor{accentcolor}{HTML}{1A4B84}
+
+\newlength{\cvafternameamount}
+\setlength{\cvafternameamount}{2mm}
+\newlength{\cvbeforenameamount}
+\setlength{\cvbeforenameamount}{0mm}
+\newlength{\cvparskip}
+\setlength{\cvparskip}{0.5mm}
+
+\newcommand{\cvnamestyle}[1]{\LARGE\textbf{\textcolor{accentcolor}{#1}}}
+\newcommand{\cvpersonalinfo}[2]{
+    % left and right column
+    \begin{minipage}[t]{0.75\textwidth}
+        \vspace{0pt}%
+        \raggedright
+        #2
+    \end{minipage}%
+    \hfill%
+    \begin{minipage}[t]{0.2\textwidth}
+        \vspace{0pt}%
+        \raggedleft
+        #1
+    \end{minipage}% <-- ADDED PERCENT HERE
+    \par\vspace{\cvafternameamount}
+}
+
+\begin{document}
+\cvpersonalinfo{photo}{test}
+\end{document}
+

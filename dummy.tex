@@ -1,0 +1,282 @@
+% vim: set textwidth=120:
+
+% Example CV based on the 1.5-column-cv template. Main features:
+% * uses the Roboto font family and IcoMoon icon set;
+% * doesn't use colours, different font weights are used instead for styling;
+% * because the CV fits on one page, header and footer are empty, just like the cover letter's.
+
+\documentclass[a4paper,10pt]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{helvet}
+\renewcommand{\familydefault}{\sfdefault}
+\usepackage{fontawesome5}
+\usepackage[left=1cm,right=1cm,top=1cm,bottom=1cm]{geometry}
+
+
+DUMMYBABEL_LANGDUMMY
+
+\usepackage{graphicx}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{calc}
+\usepackage[hidelinks]{hyperref}
+
+\definecolor{cvrulecolor}{HTML}{CCCCCC} % Light grey for the horizontal rule
+\definecolor{accentcolor}{HTML}{1A4B84} % Elegant dark blue for names and headings
+\definecolor{datecolor}{HTML}{555555} % Medium grey for dates and left column text
+
+
+\newlength{\cvleftcolumnwidth}
+\newlength{\cvrightcolumnwidth}
+\newlength{\cvcolumngapwidth}
+
+\setlength{\cvleftcolumnwidth}{24mm}
+\setlength{\cvcolumngapwidth}{3mm}
+\setlength{\cvrightcolumnwidth}{\textwidth-\cvleftcolumnwidth-\cvcolumngapwidth}
+
+\newlength{\cvbeforenameamount}
+\newlength{\cvafternameamount}
+\newlength{\cvaftersectionskipamount}
+\newlength{\cvaftertitleskipamount}
+\newlength{\cvafteritemskipamount}
+\newlength{\cvbetweensectionandheadingextraskipamount}
+
+\setlength{\cvbeforenameamount}{0mm}
+\setlength{\cvafternameamount}{2mm}
+\setlength{\cvaftersectionskipamount}{2mm}
+\setlength{\cvaftertitleskipamount}{0.5mm}
+\setlength{\cvafteritemskipamount}{1.5mm}
+\setlength{\cvbetweensectionandheadingextraskipamount}{1mm}
+
+\newlength{\cvparskip}
+\setlength{\cvparskip}{0.5mm}
+\setlength{\parindent}{0pt}
+
+\newcommand{\cvnamestyle}[1]{\LARGE\textbf{\textcolor{accentcolor}{#1}}}
+\newcommand{\cvsectionstyle}[1]{\large\textbf{\textcolor{accentcolor}{#1}}}
+\newcommand{\cvtitlestyle}[1]{\large\textbf{#1}}
+\newcommand{\cvdurationstyle}[1]{\small\textcolor{datecolor}{#1}}
+\newcommand{\cvheadingstyle}[1]{\textbf{\textcolor{accentcolor}{#1}}}
+
+
+\newcommand{\cvpersonalinfo}[2]{
+    % left and right column
+    \noindent\begin{minipage}[t]{0.75\textwidth}
+        \vspace{0mm} % XXX hack to align to top
+        \raggedright
+        #2
+    \end{minipage}%
+    \hfill%
+    \begin{minipage}[t]{0.2\textwidth}
+        \vspace{0mm} % XXX hack to align to top
+        \raggedleft
+        #1
+    \end{minipage}
+    \par\vspace{\cvafternameamount}
+}
+
+
+\newcommand{\cvname}[1]{
+    % space before
+    \vspace{\cvbeforenameamount}
+
+    % name
+    \cvnamestyle{#1}
+
+    % space after
+    \vspace{\cvparskip}
+}
+
+\newcommand{\cvpersonalinfolinewithicon}[2]{
+    % icon, vertically aligned with text
+    \makebox[1.2em][l]{\textcolor{accentcolor}{#1}} 
+    % text
+    #2
+
+    % space after
+    \vspace{\cvparskip}
+}
+
+
+\newcommand{\cvsection}[1]{
+    % left and right column
+    \noindent\begin{minipage}[t]{\cvleftcolumnwidth}
+        \raggedright\cvsectionstyle{#1}
+    \end{minipage}% XXX necessary comment to avoid unwanted space
+    \hspace{\cvcolumngapwidth}% XXX necessary comment to avoid unwanted space
+    \begin{minipage}[t]{\cvrightcolumnwidth}
+        \vspace{1.5mm} % Adjust rule vertical alignment to match text
+        \textcolor{cvrulecolor}{\rule{\cvrightcolumnwidth}{0.5mm}}
+    \end{minipage}
+
+    % space after
+    \vspace{\cvaftersectionskipamount}
+}
+
+
+\newcommand{\cvitem}[2]{
+    % left and right column
+    \noindent
+    \ifx&#1&%
+        \begin{minipage}[t]{\textwidth}
+            \setlength{\parskip}{\cvparskip} #2
+        \end{minipage}\par
+    \else
+        \begin{minipage}[t]{\cvleftcolumnwidth}
+            \raggedright #1
+        \end{minipage}%
+        \hspace{\cvcolumngapwidth}%
+        \begin{minipage}[t]{\cvrightcolumnwidth}
+            \setlength{\parskip}{\cvparskip} #2
+        \end{minipage}\par
+    \fi
+
+    % space after
+    \vspace{\cvafteritemskipamount}
+}
+
+
+\newcommand{\cvtitle}[1]{
+    % title
+    \cvtitlestyle{#1}
+
+    % space after
+    \vspace{\cvaftertitleskipamount}
+    % XXX need to subtract cvparskip here
+    \vspace{-\cvparskip}
+}
+
+\pagestyle{empty}
+
+%-------------------------------------------
+DUMMYDUMMYDUMMY  RESUME STARTS HERE  DUMMYDUMMYDUMMYDUMMYDUMMYDUMMYDUMMYDUMMYDUMMYDUMMYDUMMYDUMMYDUMMYDUMMY
+
+\begin{document}
+
+
+% personal info
+% -------------
+
+\cvpersonalinfo{
+    % photo
+    \IfFileExists{photo.png}{
+        \includegraphics[height=36mm,keepaspectratio]{photo.png}
+    }{
+        \IfFileExists{photo.jpg}{
+            \includegraphics[height=36mm,keepaspectratio]{photo.jpg}
+        }{}
+    }
+}{
+    % name
+    \cvname{DUMMYCANDIDATE_NAMEDUMMY}
+
+    DUMMYPERSONAL_TITLEDUMMY
+
+    % address
+    \cvpersonalinfolinewithicon{\faMapMarker}{
+        DUMMYLOCATIONDUMMY
+    }
+
+    % phone number
+    \cvpersonalinfolinewithicon{\faPhone}{
+        DUMMYPHONEDUMMY
+    }
+
+    % email address
+    \cvpersonalinfolinewithicon{\faEnvelope}{
+        DUMMYEMAILDUMMY
+    }
+
+    % LinkedIn account
+    \cvpersonalinfolinewithicon{\faLinkedin}{
+        DUMMYLINKEDIN_HANDLEDUMMY
+    }
+}
+
+
+DUMMYBEGIN_SECTION_SUMMARYDUMMY
+\cvsection{DUMMYSECTION_SUMMARYDUMMY}
+
+\cvitem{
+}{
+    DUMMYSUMMARY_TEXTDUMMY
+}
+DUMMYEND_SECTION_SUMMARYDUMMY
+
+
+DUMMYBEGIN_SECTION_EXPERIENCEDUMMY
+\cvsection{DUMMYSECTION_EXPERIENCEDUMMY}
+
+DUMMY REPEAT for each experience entry:
+\cvitem{
+    \cvdurationstyle{Start Date -- End Date}
+}{
+    \cvtitle{Job Title}
+
+    \textbf{Company Name, Location}
+    \vspace{-1.5mm}
+    \begin{itemize}[leftmargin=*, noitemsep, topsep=1mm]
+        \item task 1
+        \item task 2
+    \end{itemize}
+}
+DUMMY END REPEAT
+DUMMYEND_SECTION_EXPERIENCEDUMMY
+
+
+DUMMYBEGIN_SECTION_EDUCATIONDUMMY
+\cvsection{DUMMYSECTION_EDUCATIONDUMMY}
+
+DUMMY REPEAT for each education entry:
+\cvitem{
+    \cvdurationstyle{Start Date -- End Date}
+}{
+    \cvtitle{Degree Name}
+
+    \textbf{Institution Name}
+    \vspace{-1.5mm}
+    \begin{itemize}[leftmargin=*, noitemsep, topsep=1mm]
+        \item detail 1
+    \end{itemize}
+}
+DUMMY END REPEAT
+DUMMYEND_SECTION_EDUCATIONDUMMY
+
+
+DUMMYBEGIN_SECTION_SKILLSDUMMY
+\cvsection{DUMMYSECTION_SKILLSDUMMY}
+
+\vspace{\cvbetweensectionandheadingextraskipamount}
+
+DUMMY REPEAT for each skill category:
+\cvitem{
+    \cvheadingstyle{Skill Category}
+}{
+    Skill 1, Skill 2, Skill 3
+}
+DUMMY END REPEAT
+DUMMYEND_SECTION_SKILLSDUMMY
+
+
+DUMMYBEGIN_SECTION_LANGUAGESDUMMY
+\cvsection{DUMMYSECTION_LANGUAGESDUMMY}
+
+\vspace{\cvbetweensectionandheadingextraskipamount}
+
+DUMMY REPEAT for each language:
+\cvitem{
+    \cvheadingstyle{Languages}
+}{
+    Language Name -- Proficiency
+}
+DUMMY END REPEAT
+DUMMYEND_SECTION_LANGUAGESDUMMY
+
+\end{document}
+
+
+
+

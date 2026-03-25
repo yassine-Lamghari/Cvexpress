@@ -1,0 +1,212 @@
+﻿% vim: set textwidth=120:
+
+% Example CV based on the 1.5-column-cv template. Main features:
+% * uses the Roboto font family and IcoMoon icon set;
+% * doesn't use colours, different font weights are used instead for styling;
+% * because the CV fits on one page, header and footer are empty, just like the cover letter's.
+
+\documentclass[a4paper,10pt]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{helvet}
+\renewcommand{\familydefault}{\sfdefault}
+\usepackage{fontawesome5}
+\usepackage[left=1cm,right=1cm,top=1cm,bottom=1cm]{geometry}
+
+
+\usepackage[french]{babel}
+
+\usepackage{graphicx}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{calc}
+
+\definecolor{cvrulecolor}{HTML}{000000}
+
+
+\newlength{\cvleftcolumnwidth}
+\newlength{\cvrightcolumnwidth}
+\newlength{\cvcolumngapwidth}
+
+\setlength{\cvleftcolumnwidth}{44mm}
+\setlength{\cvcolumngapwidth}{4mm}
+\setlength{\cvrightcolumnwidth}{\textwidth-\cvleftcolumnwidth-\cvcolumngapwidth}
+
+\newlength{\cvbeforenameamount}
+\newlength{\cvafternameamount}
+\newlength{\cvaftersectionskipamount}
+\newlength{\cvaftertitleskipamount}
+\newlength{\cvafteritemskipamount}
+\newlength{\cvbetweensectionandheadingextraskipamount}
+
+\setlength{\cvbeforenameamount}{0mm}
+\setlength{\cvafternameamount}{2mm}
+\setlength{\cvaftersectionskipamount}{3mm}
+\setlength{\cvaftertitleskipamount}{1mm}
+\setlength{\cvafteritemskipamount}{2mm}
+\setlength{\cvbetweensectionandheadingextraskipamount}{1mm}
+
+\newlength{\cvparskip}
+\setlength{\cvparskip}{1mm}
+
+\newcommand{\cvnamestyle}[1]{\Huge\textbf{#1}}
+\newcommand{\cvsectionstyle}[1]{\large\textbf{#1}}
+\newcommand{\cvtitlestyle}[1]{\large\textbf{#1}}
+\newcommand{\cvdurationstyle}[1]{\small#1}
+\newcommand{\cvheadingstyle}[1]{\textbf{#1}}
+
+
+\newcommand{\cvpersonalinfo}[2]{%
+    % left and right column
+    \begin{minipage}[t]{\cvleftcolumnwidth}
+        \vspace{0mm} % XXX hack to align to top
+        \raggedleft #1
+    \end{minipage}% XXX necessary comment to avoid unwanted space
+    \hspace{\cvcolumngapwidth}% XXX necessary comment to avoid unwanted space
+    \begin{minipage}[t]{\cvrightcolumnwidth}
+        \vspace{0mm} % XXX hack to align to top
+        #2
+    \end{minipage}
+
+    % space after
+    \vspace{\cvafternameamount}
+}
+
+
+\newcommand{\cvname}[1]{%
+    % space before
+    \vspace{\cvbeforenameamount}
+
+    % name
+    \cvnamestyle{#1}
+
+    % space after
+    \vspace{\cvparskip}
+}
+
+\newcommand{\cvpersonalinfolinewithicon}[2]{%
+    % icon, vertically aligned with text
+    \makebox[1em][c]{\small#1} 
+    % text
+    #2
+
+    % space after
+    \vspace{\cvparskip}
+}
+
+
+\newcommand{\cvsection}[1]{%
+    % left and right column
+    \begin{minipage}[t]{\cvleftcolumnwidth}
+        \raggedleft\cvsectionstyle{#1}
+    \end{minipage}% XXX necessary comment to avoid unwanted space
+    \hspace{\cvcolumngapwidth}% XXX necessary comment to avoid unwanted space
+    \begin{minipage}[t]{\cvrightcolumnwidth}
+        \textcolor{cvrulecolor}{\rule{\cvrightcolumnwidth}{0.3mm}}
+    \end{minipage}
+
+    % space after
+    \vspace{\cvaftersectionskipamount}
+}
+
+
+\newcommand{\cvitem}[2]{%
+    % left and right column
+    \begin{minipage}[t]{\cvleftcolumnwidth}
+        \raggedleft #1
+    \end{minipage}% XXX necessary comment to avoid unwanted space
+    \hspace{\cvcolumngapwidth}% XXX necessary comment to avoid unwanted space
+    \begin{minipage}[t]{\cvrightcolumnwidth}
+        \setlength{\parskip}{\cvparskip} #2
+    \end{minipage}\par
+
+    % space after
+    \vspace{\cvafteritemskipamount}
+}
+
+
+\newcommand{\cvtitle}[1]{%
+    % title
+    \cvtitlestyle{#1}
+
+    % space after
+    \vspace{\cvaftertitleskipamount}
+    % XXX need to subtract cvparskip here
+    \vspace{-\cvparskip}
+}
+
+\pagestyle{empty}
+
+%-------------------------------------------
+%%%%%%  RESUME STARTS HERE  %%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{document}
+
+
+% personal info
+% -------------
+
+\cvpersonalinfo{
+    % photo
+}{
+    % name
+    \cvname{Le candidat}
+
+    % address
+    \cvpersonalinfolinewithicon{\faMapMarker}{
+        France
+    }
+
+    % phone number
+    \cvpersonalinfolinewithicon{\faPhone}{
+        +33 6 XX XX XX XX
+    }
+
+    % email address
+    \cvpersonalinfolinewithicon{\faEnvelope}{
+        yassine.candidat@email.com
+    }
+
+}
+
+
+\cvsection{Profil}
+
+\cvitem{
+}{
+    DÃ©veloppeur PHP passionnÃ© et motivÃ©, je recherche un poste stimulant pour mettre Ã  profit mes compÃ©tences en dÃ©veloppement web. Fort d'une solide affinitÃ© pour PHP, je suis prÃªt Ã  contribuer activement aux projets de votre Ã©quipe.
+}
+
+
+%% section vide -- pas de donnÃ©es fournies
+
+
+%% section vide -- pas de donnÃ©es fournies
+
+
+\cvsection{CompÃ©tences Techniques}
+
+\vspace{\cvbetweensectionandheadingextraskipamount}
+
+\cvitem{
+    \cvheadingstyle{Langages de Programmation}
+}{
+    PHP
+}
+
+
+\cvsection{Langues}
+
+\vspace{\cvbetweensectionandheadingextraskipamount}
+
+\cvitem{
+    \cvheadingstyle{Langues}
+}{
+    FranÃ§ais -- Natif
+}
+
+
+\end{document}
+

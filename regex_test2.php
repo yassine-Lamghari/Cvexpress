@@ -1,0 +1,4 @@
+<?php
+$t = "\\definecolor{cvblue}{HTML}{0E5484}";
+echo preg_replace('/\\\\definecolor\{(headingcolor|cvblue|accent|primary|themeColor)\}\{HTML\}\{[0-9A-Fa-f]{6}\}/i', '\\definecolor{$1}{HTML}{FF0000}', $t) . "\n";
+?>
