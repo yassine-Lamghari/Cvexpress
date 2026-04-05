@@ -7,6 +7,7 @@ import { useTranslations } from '@/lib/i18n';
 import { LATEX_API_URL } from '@/lib/api-config';
 import { useAuth } from '@/components/auth/AuthProvider';
 import AuthModal from '@/components/auth/AuthModal';
+import { supabase } from '@/lib/supabase';
 
 export default function PDFDownloadButton() {
   const { t } = useTranslations();
@@ -23,16 +24,27 @@ export default function PDFDownloadButton() {
       return;
     }
 
+    // Get fresh session token for authentication
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData?.session?.access_token;
+    if (!token) {
+      setShowAuthModal(true);
+      return;
+    }
+
     const filename = `CV-${cvData.personalInfo.firstName}-${cvData.personalInfo.lastName}.pdf`;
     setDownloading(true);
 
     try {
-      const res = await fetch(`${LATEX_API_URL}/latex-download.php`, {
+      const res = await fetch(`${LATEX_API_URL}/latex/download`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          latexCode: generatedOutput.latexCode, 
-          template: selectedTemplate, 
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          latexCode: generatedOutput.latexCode,
+          template: selectedTemplate,
           filename,
           photo: cvData.personalInfo?.photo || ''
         }),
@@ -63,7 +75,7 @@ export default function PDFDownloadButton() {
       <button
         onClick={handleDownload}
         disabled={!generatedOutput || downloading}
-        className="flex items-center gap-2 px-5 py-2.5 bg-gray-900 text-white rounded-md hover:bg-gray-800 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+        className="flex items-center gap-2 px-5 py-2.5 bg-gray-900 text-white rounded-md hover:bg-gray-800 hover:shadow-md transition-all active:scale-95 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {downloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
         {downloading ? 'Compilation...' : t('results.downloadCV')}
@@ -76,5 +88,8 @@ export default function PDFDownloadButton() {
     </>
   );
 }
+
+
+
 
 

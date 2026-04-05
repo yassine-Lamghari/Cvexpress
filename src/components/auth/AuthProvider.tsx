@@ -22,9 +22,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (error) {
+        console.error('Supabase getSession error (ignoring):', error);
+      }
       setSession(session);
       setUser(session?.user ?? null);
+      setLoading(false);
+    }).catch(err => {
+      console.error('Failed to connect to Supabase (ignoring target):', err);
+      // Failsafe pour ne pas bloquer l'UI
+      setSession(null);
+      setUser(null);
       setLoading(false);
     });
 
@@ -37,29 +46,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signUp = useCallback(async (email: string, password: string, firstName?: string, lastName?: string) => {
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { first_name: firstName, last_name: lastName },
-      },
-    });
-    return { error: error?.message ?? null };
+    try {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { first_name: firstName, last_name: lastName },
+        },
+      });
+      return { error: error?.message ?? null };
+    } catch (err) {
+      console.error('Supabase signUp error (network/fetch):', err);
+      return { error: "Impossible de joindre le serveur d'authentification (projet en pause ou réseau bloqué)." };
+    }
   }, []);
 
   const signIn = useCallback(async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return { error: error?.message ?? null };
+    try {
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      return { error: error?.message ?? null };
+    } catch (err) {
+      console.error('Supabase signIn error (network/fetch):', err);
+      return { error: "Impossible de joindre le serveur d'authentification (projet en pause ou réseau bloqué)." };
+    }
   }, []);
 
   const signInWithOAuth = useCallback(async (provider: 'google' | 'facebook') => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider,
-      options: {
-        redirectTo: window.location.origin
-      }
-    });
-    return { error: error?.message ?? null };
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo: window.location.origin
+        }
+      });
+      return { error: error?.message ?? null };
+    } catch (err) {
+      console.error('Supabase signInWithOAuth error (network/fetch):', err);
+      return { error: "Impossible de joindre le serveur d'authentification (projet en pause ou réseau bloqué)." };
+    }
   }, []);
 
   const signOut = useCallback(async () => {

@@ -188,7 +188,23 @@
     "myCvs": "Mes CVs",
     "noCvs": "Aucun CV sauvegardé",
     "loadCv": "Charger",
-    "deleteCv": "Supprimer"
+    "deleteCv": "Supprimer",
+    "user": "Utilisateur",
+    "settings": "Paramètres"
+  },
+  "history": {
+    "title": "Historique de vos CVs",
+    "subtitle": "Retrouvez et modifiez vos modèles sauvegardés",
+    "loading": "Chargement de vos CVs...",
+    "noCvs": "Aucun CV sauvegardé",
+    "noCvsDesc": "Vos CVs sauvegardés apparaîtront ici.",
+    "untitled": "CV Sans Titre",
+    "download": "Télécharger en PDF",
+    "load": "Charger",
+    "delete": "Supprimer",
+    "deleteConfirm": "Êtes-vous sûr de vouloir supprimer ce CV ?",
+    "deleteError": "Impossible de télécharger le CV (Le code LaTeX n'est peut-être pas encore généré pour ce CV).",
+    "aiEditPlaceholder": "Demandez une modification à l'IA... (ex: Rends mon résumé plus court)"
   },
   "footer": {
     "madeWith": "Fait avec ❤️ — 100% gratuit",

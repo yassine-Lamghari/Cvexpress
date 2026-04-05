@@ -1,7 +1,17 @@
 {
   "permissions": {
     "allow": [
-      "Bash(du -sh *)"
+      "Bash(du -sh *)",
+      "Bash(ls -la *.tex *.log *.aux)",
+      "Bash(ls:*)",
+      "Bash(php -l api/generate.php)",
+      "Bash(php -l api/services/rate-limiter.php)",
+      "Bash(php -l api/services/config-loader.php)",
+      "Bash(php -l api/services/latex-postprocessor.php)",
+      "Bash(php -l api/services/prompt-builder.php)",
+      "Bash(npx tsc:*)",
+      "Bash(dir \"C:\\\\Users\\\\ASUS ROG\\\\Desktop\\\\yassine\\\\cvs\")",
+      "mcp__ide__getDiagnostics"
     ]
   }
 }

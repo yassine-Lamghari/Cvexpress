@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { ArrowLeft, ArrowRight, Loader2, Sparkles } from 'lucide-react';
 import Navbar from '@/components/layout/Navbar';
@@ -208,7 +208,7 @@ export default function BuilderPage() {
                     <button
                       onClick={handleGenerate}
                       disabled={!canGoNext() || isGenerating}
-                      className="flex items-center gap-2 px-5 py-2 bg-gray-900 text-white rounded text-sm font-medium hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        className="flex items-center gap-2 px-6 py-2.5 bg-gray-900 text-white rounded-lg text-sm font-semibold hover:bg-gray-800 hover:shadow-lg hover:shadow-gray-200 active:scale-95 disabled:opacity-50 disabled:shadow-none disabled:active:scale-100 disabled:cursor-not-allowed transition-all duration-200"
                     >
                       {isGenerating ? (
                         <>
@@ -226,7 +226,7 @@ export default function BuilderPage() {
                     <button
                       onClick={goNext}
                       disabled={!canGoNext()}
-                      className="flex items-center gap-2 px-5 py-2 bg-gray-900 text-white rounded text-sm font-medium hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      className="flex items-center gap-2 px-6 py-2.5 bg-gray-900 text-white rounded-lg text-sm font-semibold hover:bg-gray-800 hover:shadow-lg disabled:opacity-50 disabled:shadow-none active:scale-95 disabled:active:scale-100 disabled:cursor-not-allowed transition-all duration-200"
                     >
                       {t('builder.next')}
                       <ArrowRight className="w-3.5 h-3.5" />
@@ -265,22 +265,22 @@ export default function BuilderPage() {
                     <li key={step.num}>
                       <button
                         onClick={() => step.num <= currentStep ? setCurrentStep(step.num as BuilderStep) : null}
-                        className={`w-full flex items-center gap-2.5 px-2 py-1.5 rounded text-xs transition-colors ${
+                        className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition-all duration-200 ${
                           step.num === currentStep
-                            ? 'bg-gray-900 text-white font-medium'
+                            ? 'bg-gray-50 text-gray-900 font-semibold shadow-sm border border-gray-100'
                             : step.num < currentStep
-                            ? 'text-gray-600 hover:bg-gray-50 cursor-pointer'
-                            : 'text-gray-300 cursor-default'
+                            ? 'text-gray-600 hover:bg-gray-100 cursor-pointer font-medium'
+                            : 'text-gray-400 cursor-default hover:bg-transparent'
                         }`}
                       >
-                        <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${
+                        <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 transition-colors ${
                           step.num === currentStep
-                            ? 'bg-white text-gray-900'
+                            ? 'bg-gray-900 text-white shadow-sm'
                             : step.num < currentStep
-                            ? 'bg-gray-200 text-gray-600'
-                            : 'bg-gray-100 text-gray-300'
+                            ? 'bg-gray-800 text-white'
+                            : 'bg-gray-100 text-gray-400'
                         }`}>
-                          {step.num < currentStep ? 'âœ“' : step.num}
+                          {step.num < currentStep ? '✓' : step.num}
                         </span>
                         {step.label}
                       </button>
@@ -315,3 +315,6 @@ export default function BuilderPage() {
     </>
   );
 }
+
+
+

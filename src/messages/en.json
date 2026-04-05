@@ -188,7 +188,23 @@
     "myCvs": "My CVs",
     "noCvs": "No saved CVs",
     "loadCv": "Load",
-    "deleteCv": "Delete"
+    "deleteCv": "Delete",
+    "user": "User",
+    "settings": "Settings"
+  },
+  "history": {
+    "title": "Your CV History",
+    "subtitle": "Find and edit your saved templates",
+    "loading": "Loading your CVs...",
+    "noCvs": "No saved CVs",
+    "noCvsDesc": "Your saved CVs will appear here.",
+    "untitled": "Untitled CV",
+    "download": "Download PDF",
+    "load": "Load",
+    "delete": "Delete",
+    "deleteConfirm": "Are you sure you want to delete this CV?",
+    "deleteError": "Unable to download CV (LaTeX code may not be generated yet for this CV).",
+    "aiEditPlaceholder": "Ask AI for a modification... (e.g., Make my summary shorter)"
   },
   "footer": {
     "madeWith": "Made with ❤️ — 100% free",

@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useCVStore } from '@/stores/cv-store';
 import { useTranslations } from '@/lib/i18n';
@@ -19,8 +19,8 @@ export default function Step3JobOffer() {
         <textarea
           value={jobOffer}
           onChange={(e) => setJobOffer(e.target.value)}
-          rows={16}
-          className="w-full px-3 py-2 border border-gray-200 rounded-md focus:ring-1 focus:ring-gray-400 focus:border-gray-400 outline-none transition-colors resize-y text-sm text-gray-900 bg-white"
+          rows={8}
+          className="w-full px-3 py-2 border border-gray-200 rounded-md focus:ring-1 focus:ring-gray-400 focus:border-gray-400 outline-none transition-colors text-sm text-gray-900 bg-white resize-y min-h-[200px] h-64"
           placeholder={t('builder.jobOfferPlaceholder')}
         />
         <div className="mt-3 flex items-center gap-4 text-xs text-gray-400">

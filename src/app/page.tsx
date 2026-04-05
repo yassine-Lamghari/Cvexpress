@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { ArrowRight, ArrowLeft, Loader2, Sparkles } from 'lucide-react';
 import Navbar from '@/components/layout/Navbar';
@@ -27,8 +27,6 @@ export default function HomePage() {
     jobOffer,
     cvData,
     selectedTemplate,
-    themeColor,
-    fontFamily,
     locale,
     isGenerating,
     setIsGenerating,
@@ -46,7 +44,7 @@ export default function HomePage() {
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 120000);
-      const response = await fetch(`${LATEX_API_URL}/generate.php`, {
+      const response = await fetch(`${LATEX_API_URL}/generate`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -60,8 +58,6 @@ export default function HomePage() {
           jobOffer,
           locale,
           template: selectedTemplate,
-          themeColor,
-          fontFamily,
           candidateName: `${cvData.personalInfo.firstName} ${cvData.personalInfo.lastName}`.trim(),
           personalTitle: cvData.personalInfo.title || '',
           personalInfo: cvData.personalInfo,

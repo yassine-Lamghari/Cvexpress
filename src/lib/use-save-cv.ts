@@ -114,8 +114,13 @@ export function useSaveCV() {
     if (lastSavedCvId.current === cvId) lastSavedCvId.current = null;
   }, [user]);
 
-const downloadCV = useCallback(async (cvId: string, title: string, template: string) => {       
+const downloadCV = useCallback(async (cvId: string, title: string, template: string) => {
     if (!user) return false;
+
+    // Get fresh session token
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData?.session?.access_token;
+    if (!token) return false;
 
     // Obtenir le code LaTeX sauvegardé
     const { data: outputData } = await supabase
@@ -141,16 +146,17 @@ const downloadCV = useCallback(async (cvId: string, title: string, template: str
 
     try {
       // Use the helper to get the correct API URL (handles NEXT_PUBLIC_LATEX_API_URL or defaults)
-      const apiUrl = process.env.NEXT_PUBLIC_LATEX_API_URL || 'http://localhost:8000';
-      const endpoint = `${apiUrl}/latex-download.php`;
+      const apiUrl = process.env.NEXT_PUBLIC_LATEX_API_URL || '/api';
+      const endpoint = `${apiUrl}/latex/download`;
 
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + token,
         },
-        body: JSON.stringify({ 
-          latexCode: outputData.latex_code, 
+        body: JSON.stringify({
+          latexCode: outputData.latex_code,
           template: template || 'professional',
           photo
         }),
@@ -170,7 +176,7 @@ const downloadCV = useCallback(async (cvId: string, title: string, template: str
       
       return true;
     } catch (err) {
-      console.error('Erreur lors du téléchargement du PDF:', err);
+      // Download failed - user already sees the failure via the return value
       return false;
     }
   }, [user]);

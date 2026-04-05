@@ -38,7 +38,7 @@ export default function Navbar() {
     const meta = user.user_metadata;
     if (meta?.full_name) return meta.full_name;
     if (meta?.first_name) return `${meta.first_name} ${meta.last_name || ''}`.trim();
-    return user.email?.split('@')[0] || 'Utilisateur';
+    return user.email?.split('@')[0] || t('auth.user');
   };
 
   const getAvatarUrl = () => {
@@ -109,7 +109,7 @@ export default function Navbar() {
                         className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
                       >
                         <History className="w-4 h-4 text-gray-400" />
-                        Mes CVs
+                        {t('auth.myCvs')}
                       </button>
 
                       <button
@@ -120,9 +120,9 @@ export default function Navbar() {
                         className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
                       >
                         <Settings className="w-4 h-4 text-gray-400" />
-                        Paramètres
+                        {t('auth.settings')}
                       </button>
-                      
+
                       <button
                         onClick={() => {
                           signOut();
@@ -131,7 +131,7 @@ export default function Navbar() {
                         className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
                       >
                         <LogOut className="w-4 h-4 text-red-400" />
-                        Déconnexion
+                        {t('auth.signOut')}
                       </button>
                     </div>
                   )}
@@ -155,3 +155,6 @@ export default function Navbar() {
     </>
   );
 }
+
+
+

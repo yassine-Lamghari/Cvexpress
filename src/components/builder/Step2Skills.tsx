@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState } from 'react';
 import { X, Plus } from 'lucide-react';
@@ -81,7 +81,7 @@ export default function Step2Skills() {
           />
           <button
             onClick={handleAddSkill}
-            className="px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800 transition-colors flex items-center gap-1 text-sm"
+            className="px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800 hover:shadow-md transition-all active:scale-95 transition-colors flex items-center gap-1 text-sm"
           >
             <Plus className="w-4 h-4" />
             {t('builder.addSkill')}
@@ -107,7 +107,7 @@ export default function Step2Skills() {
         <div className="flex gap-2 mb-3">
           <input type="text" value={langName} onChange={(e) => setLangName(e.target.value)} className={`flex-1 ${inputCls}`} placeholder={t('builder.langNamePh')} />
           <input type="text" value={langLevel} onChange={(e) => setLangLevel(e.target.value)} className={`flex-1 ${inputCls}`} placeholder={t('builder.langLevelPh')} />
-          <button onClick={handleAddLanguage} className="px-3 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800 transition-colors flex items-center gap-1 text-sm">
+          <button onClick={handleAddLanguage} className="px-3 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800 hover:shadow-md transition-all active:scale-95 transition-colors flex items-center gap-1 text-sm">
             <Plus className="w-4 h-4" />
           </button>
         </div>
@@ -132,7 +132,7 @@ export default function Step2Skills() {
           <input type="text" value={certName} onChange={(e) => setCertName(e.target.value)} className={`flex-1 ${inputCls}`} placeholder={t('builder.certNamePh')} />
           <input type="text" value={certIssuer} onChange={(e) => setCertIssuer(e.target.value)} className={`flex-1 ${inputCls}`} placeholder={t('builder.certIssuerPh')} />
           <input type="text" value={certDate} onChange={(e) => setCertDate(e.target.value)} className={`w-28 ${inputCls}`} placeholder="2024" />
-          <button onClick={handleAddCertification} className="px-3 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800 transition-colors flex items-center gap-1 text-sm">
+          <button onClick={handleAddCertification} className="px-3 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800 hover:shadow-md transition-all active:scale-95 transition-colors flex items-center gap-1 text-sm">
             <Plus className="w-4 h-4" />
           </button>
         </div>
@@ -150,3 +150,6 @@ export default function Step2Skills() {
     </div>
   );
 }
+
+
+

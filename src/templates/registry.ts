@@ -1,4 +1,5 @@
 import type { TemplateInfo } from '@/types/cv';
+import { ALLOWED_TEMPLATES } from './config';
 
 export const templateList: TemplateInfo[] = [
   {

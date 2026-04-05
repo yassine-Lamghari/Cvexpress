@@ -9,7 +9,7 @@ interface LatexCodePreviewProps {
   photo?: string;
 }
 
-const LATEX_API_URL = process.env.NEXT_PUBLIC_LATEX_API_URL || 'http://localhost:8000';
+const LATEX_API_URL = process.env.NEXT_PUBLIC_LATEX_API_URL || '/api';
 const DEBOUNCE_MS = 1500;
 
 export default function LatexCodePreview({ latexCode, template, photo }: LatexCodePreviewProps) {
@@ -32,7 +32,7 @@ export default function LatexCodePreview({ latexCode, template, photo }: LatexCo
     setError(null);
 
     try {
-      const res = await fetch(`${LATEX_API_URL}/latex-preview.php`, {
+      const res = await fetch(`${LATEX_API_URL}/latex/preview`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ latexCode: code, template, photo }),

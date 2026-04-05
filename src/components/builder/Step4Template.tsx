@@ -37,7 +37,7 @@ export default function Step4Template() {
               onClick={() => setSelectedTemplate(tmpl.id)}
               className={`relative text-left rounded-lg border-2 transition-all overflow-hidden ${
                 isSelected
-                  ? 'border-gray-900 shadow-lg scale-[1.02]'
+                  ? 'border-gray-600 shadow-lg scale-[1.02]'
                   : 'border-gray-200 hover:border-gray-400 hover:shadow-md'
               }`}
             >
@@ -74,3 +74,6 @@ export default function Step4Template() {
     </div>
   );
 }
+
+
+

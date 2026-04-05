@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, useRef } from 'react';
 import { Github } from 'lucide-react';
@@ -6,6 +6,8 @@ import { useCVStore } from '@/stores/cv-store';
 import { useTranslations } from '@/lib/i18n';
 
 const inputCls = 'w-full px-3 py-2 border border-gray-200 rounded-md focus:ring-1 focus:ring-gray-400 focus:border-gray-400 outline-none transition-colors text-sm text-gray-900 bg-white';
+
+import { fetchWithRetry } from '@/lib/fetch-retry';
 
 export default function Step1Profile() {
   const { t } = useTranslations();
@@ -16,9 +18,10 @@ export default function Step1Profile() {
 
   const [githubUrl, setGithubUrl] = useState('');
   const [isImportingGithub, setIsImportingGithub] = useState(false);
+  const [githubError, setGithubError] = useState('');
+  const [isDragging, setIsDragging] = useState(false);
 
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const processFile = (file: File) => {
     if (!file) return;
     if (!file.type.startsWith('image/')) return;
     if (file.size > 5 * 1024 * 1024) return;
@@ -27,33 +30,78 @@ export default function Step1Profile() {
     reader.readAsDataURL(file);
   };
 
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) processFile(file);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) processFile(file);
+  };
+
   const removePhoto = () => {
     setPersonalInfo({ photo: '' });
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const handleGithubImport = async () => {
-    if (!githubUrl.trim()) return;
-    
-    // Extract username from URL or use as is if it's just a username
+    setGithubError('');
+    if (!githubUrl.trim()) {
+      setGithubError('Veuillez entrer une URL ou un pseudo GitHub valide.');
+      return;
+    }
+
     let username = githubUrl.trim();
     if (username.includes('github.com/')) {
       const parts = username.split('github.com/');
-      username = parts[1].split('/')[0]; // Get the part right after github.com/
+      username = parts[1].split('/')[0];
     }
-    // Remove any special characters or query params
     username = username.replace(/[^a-zA-Z0-9-]/g, '');
 
-    if (!username) return;
+    if (!username) {
+      setGithubError('Pseudo GitHub invalide.');
+      return;
+    }
 
     setIsImportingGithub(true);
     try {
-      const userRes = await fetch(`https://api.github.com/users/${username}`);
-      if (!userRes.ok) throw new Error('User not found');
-      const userData = await userRes.json();
+      const userRes = await fetchWithRetry(`https://api.github.com/users/${username}`);
       
-      const reposRes = await fetch(`https://api.github.com/users/${username}/repos?sort=updated&per_page=10`);
-      const reposData = await reposRes.json();
+      if (userRes.status === 403) {
+        throw new Error('Limite GitHub API atteinte. Réessayez plus tard.');
+      }
+      if (userRes.status === 404) {
+        throw new Error('Utilisateur non trouvé.');
+      }
+      if (!userRes.ok) {
+        throw new Error(`Erreur réseau (${userRes.status}).`);
+      }
+
+      const userData = await userRes.json();
+
+      // Fetch repos with pagination awareness
+      let reposData: any[] = [];
+      try {
+        const reposRes = await fetchWithRetry(`https://api.github.com/users/${username}/repos?sort=updated&per_page=30`);
+        if (reposRes.ok) {
+          reposData = await reposRes.json();
+        }
+      } catch {
+        // Non-critical: continue without repos if fetch fails
+      }
 
       let githubSummary = `--- Profil GitHub de ${userData.name || userData.login} ---\n`;
       githubSummary += `Bio: ${userData.bio || 'Non renseignée'}\n`;
@@ -61,28 +109,29 @@ export default function Step1Profile() {
       if (userData.blog) githubSummary += `Site web: ${userData.blog}\n`;
       githubSummary += `Followers: ${userData.followers}\n`;
       githubSummary += `Public repos: ${userData.public_repos}\n\n`;
-      
+
       if (reposData && reposData.length > 0) {
         githubSummary += `Projets:\n`;
-        reposData.forEach((repo: any) => {
-          if (!repo.fork) {
-            githubSummary += `- ${repo.name} ${repo.language ? '(' + repo.language + ')' : ''}: ${repo.description || 'Pas de description'}\n`;
-          }
+        const topRepos = reposData
+          .filter((repo: any) => !repo.fork)
+          .slice(0, 15); // Limit to 15 repos
+        topRepos.forEach((repo: any) => {
+          githubSummary += `- ${repo.name} ${repo.language ? '(' + repo.language + ')' : ''}: ${repo.description || 'Pas de description'}\n`;
         });
       }
 
       setRawResume(rawResume ? rawResume + '\n\n' + githubSummary : githubSummary);
-      
+
       if (!cvData.personalInfo.lastName && !cvData.personalInfo.firstName && userData.name) {
         const parts = userData.name.split(' ');
-        setPersonalInfo({ 
-          firstName: parts[0] || '', 
+        setPersonalInfo({
+          firstName: parts[0] || '',
           lastName: parts.slice(1).join(' ') || ''
         });
       }
-      
+
     } catch (err) {
-      alert("Erreur lors de l'importation. Vérifiez le nom d'utilisateur GitHub.");
+      setGithubError(err instanceof Error ? err.message : "Erreur lors de l'importation. Vérifiez le pseudo GitHub.");
     } finally {
       setIsImportingGithub(false);
     }
@@ -97,8 +146,13 @@ export default function Step1Profile() {
         </h3>
         <div className="flex items-center gap-5">
           <div
-            className="w-24 h-24 rounded-full bg-gray-100 border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden cursor-pointer hover:border-gray-400 transition-colors"
+            className={`w-24 h-24 rounded-full bg-gray-100 border-2 border-dashed flex items-center justify-center overflow-hidden cursor-pointer transition-colors ${
+              isDragging ? 'border-gray-600 bg-gray-50' : 'border-gray-300 hover:border-gray-400'
+            }`}
             onClick={() => fileInputRef.current?.click()}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
           >
             {cvData.personalInfo.photo ? (
               <img src={cvData.personalInfo.photo} alt="Photo" className="w-full h-full object-cover" />
@@ -126,7 +180,7 @@ export default function Step1Profile() {
         <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-4">
           {t('builder.personalInfo')}
         </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">{t('builder.firstName')}</label>
             <input type="text" value={cvData.personalInfo.firstName} onChange={(e) => setPersonalInfo({ firstName: e.target.value })} className={inputCls} placeholder="Jean" />
@@ -179,15 +233,16 @@ export default function Step1Profile() {
             className="flex-1 px-3 py-2 border border-gray-200 rounded-md focus:ring-1 focus:ring-gray-400 outline-none text-sm" 
             placeholder={t('builder.githubUrl') || 'https://github.com/username'} 
           />
-          <button 
-            type="button" 
+          <button
+            type="button"
             onClick={handleGithubImport}
             disabled={isImportingGithub || !githubUrl.trim()}
-            className="px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-md hover:bg-gray-800 disabled:opacity-50 transition-colors"
+            className="px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-md hover:bg-gray-800 hover:shadow-md transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {isImportingGithub ? (t('builder.importing') || 'Importing...') : (t('builder.importGithub') || 'Import')}
           </button>
         </div>
+        {githubError && <p className="text-xs text-red-500 mt-2">{githubError}</p>}
       </div>
 
       {/* Raw Resume */}
@@ -198,9 +253,9 @@ export default function Step1Profile() {
         <textarea
           value={rawResume}
           onChange={(e) => setRawResume(e.target.value)}
-          rows={16}
-          className={`${inputCls} resize-y h-96`}
-          placeholder={t('builder.resumePlaceholder')}
+          rows={8}
+          className={`${inputCls} resize-y min-h-[200px] h-64`}
+          placeholder={t('builder.resumePlaceholder') + " (Vous pouvez aussi y coller le contenu de votre fichier .tex existant si vous en avez un !)"}
         />
         <p className="text-xs text-gray-400 mt-1.5">{t('builder.resumeHint')}</p>
       </div>
@@ -208,3 +263,6 @@ export default function Step1Profile() {
     </div>
   );
 }
+
+
+

@@ -4,21 +4,36 @@ import { useState, useRef, useEffect } from 'react';
 import { useCVStore } from '@/stores/cv-store';
 import { useTranslations } from '@/lib/i18n';
 import { LATEX_API_URL } from '@/lib/api-config';
-import { Download, Copy, Check, RefreshCw, ArrowLeft, FileText, Mail, Sparkles, Pencil, Code, Eye, ChevronDown, ChevronUp, Columns2, Maximize2, MousePointerClick, Save } from 'lucide-react';
+import { Download, Copy, Check, RefreshCw, ArrowLeft, FileText, Mail, Sparkles, Pencil, Code, Eye, ChevronDown, ChevronUp, Columns2, Maximize2, MousePointerClick, Save, Undo, Redo } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { LatexCodePreview } from '@/components/preview/registry';
 import ClickablePreview from '@/components/editor/ClickablePreview';
 import SectionEditPopover from '@/components/editor/SectionEditPopover';
 import AIEditBar from '@/components/editor/AIEditBar';
+import UndoRedoControls from '@/components/editor/UndoRedoControls';
 import type { ParsedSection } from '@/lib/latex-parser';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { useSaveCV } from '@/lib/use-save-cv';
+
+import { useAIEdit } from '@/lib/use-ai-edit';
 
 const PDFDownloadButton = dynamic(() => import('@/components/pdf/PDFDownloadButton'), { ssr: false });
 
 export default function Step5Results() {
   const { t } = useTranslations();
-  const { generatedOutput, setGeneratedOutput, setCurrentStep, selectedTemplate, locale, cvData } = useCVStore();
+  const { 
+    generatedOutput, 
+    setGeneratedOutput, 
+    updateLatexCode,
+    undoLatex,
+    redoLatex,
+    latexHistoryIndex,
+    latexHistory,
+    setCurrentStep, 
+    selectedTemplate, 
+    locale, 
+    cvData 
+  } = useCVStore();
   const { user } = useAuth();
   const { saveCV, saving, saveStatus } = useSaveCV();
   const [copiedEmail, setCopiedEmail] = useState(false);
@@ -69,13 +84,13 @@ export default function Step5Results() {
 
   const handleLocalLatexChange = (value: string) => {
     setLocalLatex(value);
-    setHasUnapplied(value !== generatedOutput.latexCode);
+    setHasUnapplied(value !== generatedOutput?.latexCode);
 
     // In split view, auto-apply after 2s of no typing
     if (splitView) {
       if (editorTimerRef.current) clearTimeout(editorTimerRef.current);
       editorTimerRef.current = setTimeout(() => {
-        setGeneratedOutput({ ...generatedOutput, latexCode: value });
+        updateLatexCode(value);
         setHasUnapplied(false);
       }, 2000);
     }
@@ -83,7 +98,7 @@ export default function Step5Results() {
 
   const applyCodeChanges = () => {
     if (editorTimerRef.current) clearTimeout(editorTimerRef.current);
-    setGeneratedOutput({ ...generatedOutput, latexCode: localLatex });
+    updateLatexCode(localLatex);
     setHasUnapplied(false);
   };
 
@@ -93,36 +108,18 @@ export default function Step5Results() {
     setHasUnapplied(false);
   };
 
+const { editSection, loading: isEditLoading } = useAIEdit();
+  
   const handleSectionClick = (section: ParsedSection, rect: DOMRect) => {
     setEditingSection(section);
     setEditAnchorRect(rect);
   };
 
   const handleSectionSave = async (instruction: string) => {
-    if (!instruction || !generatedOutput.latexCode) return;
     setEditLoading(true);
-    try {
-      const res = await fetch(`${LATEX_API_URL}/edit.php`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache'
-        },
-        cache: 'no-store',
-        body: JSON.stringify({ latexCode: generatedOutput.latexCode, instruction, locale }),
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({ error: 'Server error' }));
-        throw new Error(data.error || `Error ${res.status}`);
-      }
-      const result = await res.json();
-      if (result.success && result.data?.latexCode) {
-        setGeneratedOutput({ ...generatedOutput, latexCode: result.data.latexCode });
-      }
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Edit failed. Please try again.');
-    } finally {
-      setEditLoading(false);
+    const success = await editSection(instruction);
+    setEditLoading(false);
+    if (success) {
       setEditingSection(null);
       setEditAnchorRect(null);
     }
@@ -164,7 +161,7 @@ export default function Step5Results() {
               onClick={() => setActiveTab(tab.id)}
               className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
                 activeTab === tab.id
-                  ? 'border-gray-900 text-gray-900'
+                  ? 'border-gray-600 text-gray-900'
                   : 'border-transparent text-gray-400 hover:text-gray-600'
               }`}
             >
@@ -202,7 +199,7 @@ export default function Step5Results() {
             </div>
             <button
               onClick={() => { setAdvancedMode(!advancedMode); if (advancedMode) { setSplitView(false); setShowCodeEditor(false); } }}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md border transition-colors ${advancedMode ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'}`}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md border transition-colors ${advancedMode ? 'bg-gray-900 text-white border-gray-600' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'}`}
             >
               <Code className="w-3.5 h-3.5" />
               {locale === 'fr' ? 'Mode avancé' : 'Advanced mode'}
@@ -212,6 +209,7 @@ export default function Step5Results() {
           {/* === CLICKABLE PREVIEW (default mode) === */}
           {!advancedMode && (
             <div ref={previewContainerRef} className="relative max-w-3xl mx-auto">
+              <UndoRedoControls />
               {generatedOutput.latexCode ? (
                 <div className="bg-white shadow-lg border border-gray-200 overflow-hidden">
                   <ClickablePreview
@@ -249,7 +247,7 @@ export default function Step5Results() {
               <div className="flex justify-end">
                 <button
                   onClick={() => { setSplitView(!splitView); if (!splitView) setShowCodeEditor(false); }}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md border transition-colors ${splitView ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'}`}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md border transition-colors ${splitView ? 'bg-gray-900 text-white border-gray-600' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'}`}
                 >
                   <Columns2 className="w-3.5 h-3.5" />
                   {locale === 'fr' ? 'Éditeur côte à côte' : 'Side-by-side editor'}
@@ -265,13 +263,12 @@ export default function Step5Results() {
                         <Code className="w-3.5 h-3.5" />
                         {locale === 'fr' ? 'Code LaTeX' : 'LaTeX Code'}
                       </span>
-                      <div className="flex items-center gap-2">
-                        {hasUnapplied && (
+                      <div className="flex items-center gap-2">                          <UndoRedoControls />                        {hasUnapplied && (
                           <>
                             <button onClick={discardCodeChanges} className="text-xs text-gray-500 hover:text-gray-700 transition-colors">
                               {locale === 'fr' ? 'Annuler' : 'Discard'}
                             </button>
-                            <button onClick={applyCodeChanges} className="flex items-center gap-1 px-2.5 py-1 bg-gray-900 text-white text-xs rounded hover:bg-gray-800 transition-colors">
+                            <button onClick={applyCodeChanges} className="flex items-center gap-1 px-2.5 py-1 bg-gray-900 text-white text-xs rounded hover:bg-gray-800 hover:shadow-md transition-all active:scale-95 transition-colors">
                               <Eye className="w-3 h-3" />
                               {locale === 'fr' ? 'Appliquer' : 'Apply'}
                             </button>
@@ -345,12 +342,13 @@ export default function Step5Results() {
 
             {/* Toggle buttons row (only in advanced mode, non-split) */}
             {advancedMode && !splitView && (
-              <div className="flex gap-2">
+              <div className="flex gap-2 justify-between w-full">
+                <UndoRedoControls />
                 <button
                   onClick={() => setShowCodeEditor(!showCodeEditor)}
                   className={`flex items-center gap-1.5 px-3 py-2 text-xs rounded-md border transition-colors ${
                     showCodeEditor
-                      ? 'bg-gray-900 text-white border-gray-900'
+                      ? 'bg-gray-900 text-white border-gray-600'
                       : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
                   }`}
                 >
@@ -379,7 +377,7 @@ export default function Step5Results() {
                       </button>
                       <button
                         onClick={applyCodeChanges}
-                        className="flex items-center gap-1 px-2.5 py-1 bg-gray-900 text-white text-xs rounded hover:bg-gray-800 transition-colors"
+                        className="flex items-center gap-1 px-2.5 py-1 bg-gray-900 text-white text-xs rounded hover:bg-gray-800 hover:shadow-md transition-all active:scale-95 transition-colors"
                       >
                         <Eye className="w-3 h-3" />
                         {locale === 'fr' ? 'Appliquer' : 'Apply'}
@@ -426,7 +424,7 @@ export default function Step5Results() {
               a.click();
               URL.revokeObjectURL(url);
             }}
-            className="flex items-center gap-2 px-5 py-2.5 bg-gray-900 text-white rounded-md hover:bg-gray-800 transition-colors text-sm font-medium"
+            className="flex items-center gap-2 px-5 py-2.5 bg-gray-900 text-white rounded-md hover:bg-gray-800 hover:shadow-md transition-all active:scale-95 transition-colors text-sm font-medium"
           >
             <Download className="w-4 h-4" />
             {t('results.downloadLetter')}
@@ -448,7 +446,7 @@ export default function Step5Results() {
           </div>
           <button
             onClick={handleCopyEmail}
-            className="flex items-center gap-2 px-5 py-2.5 bg-gray-900 text-white rounded-md hover:bg-gray-800 transition-colors text-sm font-medium"
+            className="flex items-center gap-2 px-5 py-2.5 bg-gray-900 text-white rounded-md hover:bg-gray-800 hover:shadow-md transition-all active:scale-95 transition-colors text-sm font-medium"
           >
             {copiedEmail ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
             {copiedEmail ? t('results.copied') : t('results.copyEmail')}
@@ -479,7 +477,7 @@ export default function Step5Results() {
 
 /** Suggestion chip that auto-submits an AI edit request */
 function SuggestionChip({ label }: { label: string }) {
-  const { generatedOutput, setGeneratedOutput, locale } = useCVStore();
+  const { generatedOutput, updateLatexCode, locale } = useCVStore();
   const [loading, setLoading] = useState(false);
 
   const handleClick = async () => {
@@ -487,9 +485,9 @@ function SuggestionChip({ label }: { label: string }) {
 
     setLoading(true);
     try {
-      const res = await fetch(`${LATEX_API_URL}/edit.php`, {
+      const res = await fetch(`${LATEX_API_URL}/edit`, {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'Cache-Control': 'no-cache'
         },
@@ -508,7 +506,7 @@ function SuggestionChip({ label }: { label: string }) {
 
       const result = await res.json();
       if (result.success && result.data?.latexCode) {
-        setGeneratedOutput({ ...generatedOutput, latexCode: result.data.latexCode });
+        updateLatexCode(result.data.latexCode);
       }
     } catch {
       // Suggestion chips are secondary — AIEditBar handles main error display
@@ -527,3 +525,6 @@ function SuggestionChip({ label }: { label: string }) {
     </button>
   );
 }
+
+
+

@@ -45,4 +45,16 @@ next-env.d.ts
 
 # LaTeX temp files
 .latex_tmp/
+.latex_cache/
 api/test-malta.php
+
+# Test files
+tests/
+
+# LaTeX build artifacts (root level)
+/*.aux
+/*.log
+/*.out
+/*.pdf
+!api/templates/*.aux
+!api/templates/*.log
