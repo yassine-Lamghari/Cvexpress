@@ -8,11 +8,8 @@
  */
 
 export const ALLOWED_TEMPLATES = [
-  'professional',
-  'charles',
   'rezume',
   'modern_image',
-  'one_and_half_column',
 ] as const;
 
 export type TemplateId = typeof ALLOWED_TEMPLATES[number];

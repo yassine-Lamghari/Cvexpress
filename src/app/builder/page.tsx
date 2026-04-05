@@ -31,7 +31,12 @@ export default function BuilderPage() {
     setGeneratedOutput,
     setGenerationError,
     generationError,
+    setCVData,
+    setJobOffer,
+    setRawResume,
+    setRawSkills,
   } = useCVStore();
+
 
   const handleGenerate = async () => {
     setIsGenerating(true);
@@ -298,8 +303,7 @@ export default function BuilderPage() {
                   <li>â†’ {t('builder.sidebarTip3')}</li>
                 </ul>
               </div>
-
-              {/* Ad widget */}
+{/* Ad widget */}
               <AdBanner
                 adKey={process.env.NEXT_PUBLIC_ADSTERRA_BANNER_KEY || ''}
                 format="banner"
@@ -315,6 +319,11 @@ export default function BuilderPage() {
     </>
   );
 }
+
+
+
+
+
 
 
 

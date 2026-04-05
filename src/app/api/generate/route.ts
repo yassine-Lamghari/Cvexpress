@@ -127,16 +127,55 @@ export async function POST(req: Request) {
     }
 
     let parsed = null;
+    let cleanedText = responseText;
     try {
-      let cleanedText = responseText.replace(/^```json\\s*/i, '').replace(/```\\s*$/i, '');
+      // Robust JSON extraction
+      const match = responseText.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+      if (match) {
+        cleanedText = match[1];
+      } else {
+        cleanedText = cleanedText.trim();
+        if (cleanedText.startsWith('```json')) {
+            cleanedText = cleanedText.replace(/^```json\s*/i, '');
+        }
+        if (cleanedText.endsWith('```')) {
+            cleanedText = cleanedText.replace(/\s*```$/i, '');
+        }
+      }
+      
+      // Fix unescaped newlines in json strings or other common formatting errors by Gemini
+      // If it contains literal newlines inside strings, JSON.parse will fail.
+      // A quick heuristic: if JSON.parse fails, we could try to sanitize but for now just parse
       parsed = JSON.parse(cleanedText);
-    } catch (e) {
-      return NextResponse.json({ error: 'Failed to parse AI response' }, { status: 500 });
+    } catch (e: any) {
+      console.error('Parse Error - Original Text:', responseText);
+      console.error('Parse Error - Cleaned Text:', cleanedText);
+      console.error('Parse Error - Exception:', e.message);
+      
+      // Attempt manual extraction of latexCode as last resort fallback
+      const latexMatch = responseText.match(/"latexCode"\s*:\s*"([\s\S]*?)"(?=\s*(?:,|^\}$))/m);
+      if (latexMatch) {
+         try {
+             const manualLatex = JSON.parse(`{"latexCode": "${latexMatch[1]}"}`).latexCode;
+             parsed = { latexCode: manualLatex };
+         } catch(fallbackErr) {
+             return NextResponse.json({ error: 'Failed to parse AI response', detail: e.message }, { status: 500 });     
+         }
+      } else {
+         return NextResponse.json({ error: 'Failed to parse AI response', detail: e.message }, { status: 500 });
+      }
     }
 
     let latexOutput = parsed.latexCode || '';
     if (latexOutput) {
       try {
+        // Enforce the original robust preamble from the template, completely bypassing LLM character hallucination
+        if (texTemplate.includes('\\begin{document}') && latexOutput.includes('\\begin{document}')) {
+          const originalPreamble = texTemplate.split('\\begin{document}')[0];
+          const generatedBody = latexOutput.split('\\begin{document}').slice(1).join('\\begin{document}');
+          latexOutput = originalPreamble + '\\begin{document}' + generatedBody;
+        }
+
         latexOutput = postProcessLatex(latexOutput, finalTemplateName);
         latexOutput = validateBraceBalance(latexOutput);
         latexOutput = validateResumeSubheading(latexOutput);
@@ -145,12 +184,16 @@ export async function POST(req: Request) {
         if (!latexOutput.includes('\\usepackage[french]{babel}') && !latexOutput.includes('\\usepackage[english]{babel}')) {
           latexOutput = latexOutput.replace('\\begin{document}', `${babelLine}\n\\begin{document}`);
         }
+        if (latexOutput.includes('french') && !latexOutput.includes('\\shorthandoff{,')) {
+          latexOutput = latexOutput.replace('\\begin{document}', '\\AtBeginDocument{\\shorthandoff{,}}\n\\begin{document}');
+        }
 
         if (!latexOutput.trim().endsWith('\\end{document}')) {
           latexOutput = latexOutput.trimEnd() + '\n\\end{document}';
         }
       } catch (e: any) {
-        return NextResponse.json({ error: e.message }, { status: 500 });
+        console.error('PostProcess Error:', e);
+        return NextResponse.json({ error: e.message, detail: e.stack }, { status: 500 });
       }
     }
 
@@ -169,3 +212,4 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Internal Server Error', detail: error.stack }, { status: 500 });
   }
 }
+

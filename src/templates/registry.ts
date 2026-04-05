@@ -3,22 +3,6 @@ import { ALLOWED_TEMPLATES } from './config';
 
 export const templateList: TemplateInfo[] = [
   {
-    id: 'professional',
-    name: 'Professional',
-    description: 'Vaishanth — colonne unique, airforce blue, CormorantGaramond/Charter, style ingénieur',
-    thumbnail: '/templates/professional-thumb.png',
-    tags: ['professionnel', 'ingénieur', 'compact'],
-    primaryColor: '#0E5484',
-  },
-  {
-    id: 'charles',
-    name: 'Charles',
-    description: "Charles Rambo — photo circulaire, Palatino, A4, style académique européen",
-    thumbnail: '/templates/charles-thumb.png',
-    tags: ['photo', 'académique', 'européen'],
-    primaryColor: '#333333',
-  },
-  {
     id: 'rezume',
     name: 'Rezume',
     description: 'Nanu — Source Sans Pro, sections bleues, style développeur moderne',
@@ -33,14 +17,6 @@ export const templateList: TemplateInfo[] = [
     thumbnail: '/templates/professional-thumb.png',
     tags: ['photo', 'moderne', 'professionnel'],
     primaryColor: '#0E5484',
-  },
-  {
-    id: 'one_and_half_column',
-    name: '1.5 Column',
-    description: 'Template CV 1.5 colonnes avec photo, icônes, et style Roboto',
-    thumbnail: '/templates/professional-thumb.png',
-    tags: ['photo', 'moderne', 'colonnes'],
-    primaryColor: '#000000',
   },
 ];
 

@@ -37,12 +37,16 @@ export async function POST(req: Request) {
         format: previewDataUrl.includes('image/png') ? 'png' : 'pdf'
       });
     } catch (e: any) {
+      console.error('Preview error:', e);
       return NextResponse.json({ error: e.message }, { status: 500 });
     } finally {
       await cleanupTmpDir(tmpDir);
     }
 
   } catch (err: any) {
+    console.error('Unhandled Server Error in Preview:', err);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
+
+

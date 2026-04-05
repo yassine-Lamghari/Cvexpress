@@ -88,7 +88,7 @@ export const useCVStore = create<CVStore>()(
       rawResume: '',
       rawSkills: '',
       currentStep: 1,
-      selectedTemplate: 'professional',
+      selectedTemplate: 'rezume',
       locale: 'fr',
       generatedOutput: null,
       latexHistory: [],
@@ -298,7 +298,7 @@ export const useCVStore = create<CVStore>()(
           rawResume: '',
           rawSkills: '',
           currentStep: 1,
-          selectedTemplate: 'professional',
+          selectedTemplate: 'rezume',
           generatedOutput: null,
           latexHistory: [],
           latexHistoryIndex: -1,
@@ -333,9 +333,9 @@ export const useCVStore = create<CVStore>()(
       migrate: (persisted: unknown, version: number) => {
         const state = persisted as Record<string, unknown>;
         if (version < 2) {
-          const validTemplates = ['professional', 'charles', 'rezume', 'modern_image', 'one_and_half_column'];
+          const validTemplates = ['rezume', 'modern_image'];
           if (!validTemplates.includes(state.selectedTemplate as string)) {
-            state.selectedTemplate = 'professional';
+            state.selectedTemplate = 'rezume';
           }
           state.generatedOutput = null;
         }

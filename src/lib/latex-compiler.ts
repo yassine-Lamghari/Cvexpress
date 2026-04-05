@@ -99,13 +99,10 @@ function normalizeLatexInput(latexCode: string): string {
     output = output.slice(1);
   }
 
-  // Convert escaped newlines from JSON-like strings.
-  if (/\\[nrt]/.test(output)) {
-    output = output
-      .replace(/\\r\\n/g, '\n')
-      .replace(/\\n/g, '\n')
-      .replace(/\\r/g, '\n')
-      .replace(/\\t/g, '\t');
+// Convert escaped newlines from JSON-like strings gently if needed, but not naively replacing \n because of \normalsize
+    // JSON.parse already handles the actual newlines.
+    if (output.includes('\\\\n')) {
+      output = output.replace(/\\\\n/g, '\n');
   }
 
   output = output.trim();
@@ -261,3 +258,5 @@ export async function cleanupTmpDir(tmpDir: string) {
     console.error(`Failed to clean up tmp dir ${tmpDir}:`, e);
   }
 }
+
+
