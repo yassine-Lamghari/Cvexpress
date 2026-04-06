@@ -60,7 +60,7 @@ export default function Step1Profile() {
   const handleGithubImport = async () => {
     setGithubError('');
     if (!githubUrl.trim()) {
-      setGithubError('Veuillez entrer une URL ou un pseudo GitHub valide.');
+      setGithubError(t('builder.githubEmpty'));
       return;
     }
 
@@ -72,7 +72,7 @@ export default function Step1Profile() {
     username = username.replace(/[^a-zA-Z0-9-]/g, '');
 
     if (!username) {
-      setGithubError('Pseudo GitHub invalide.');
+      setGithubError(t('builder.githubInvalid'));
       return;
     }
 
@@ -81,13 +81,13 @@ export default function Step1Profile() {
       const userRes = await fetchWithRetry(`https://api.github.com/users/${username}`);
       
       if (userRes.status === 403) {
-        throw new Error('Limite GitHub API atteinte. Réessayez plus tard.');
+        throw new Error(t('builder.githubRateLimit'));
       }
       if (userRes.status === 404) {
-        throw new Error('Utilisateur non trouvé.');
+        throw new Error(t('builder.githubNotFound'));
       }
       if (!userRes.ok) {
-        throw new Error(`Erreur réseau (${userRes.status}).`);
+        throw new Error(t('builder.githubError').replace('{status}', userRes.status.toString()));
       }
 
       const userData = await userRes.json();
@@ -123,11 +123,17 @@ export default function Step1Profile() {
       setRawResume(rawResume ? rawResume + '\n\n' + githubSummary : githubSummary);
 
       if (!cvData.personalInfo.lastName && !cvData.personalInfo.firstName && userData.name) {
-        const parts = userData.name.split(' ');
-        setPersonalInfo({
-          firstName: parts[0] || '',
-          lastName: parts.slice(1).join(' ') || ''
-        });
+        const nameParts = userData.name.trim().split(/\s+/);
+        
+        let firstName = nameParts[0] || '';
+        let lastName = nameParts.slice(1).join(' ') || '';
+        
+        if (nameParts.length >= 3 && ['jean', 'marie', 'pierre', 'anne'].includes(nameParts[0].toLowerCase())) {
+          firstName = `${nameParts[0]} ${nameParts[1]}`;
+          lastName = nameParts.slice(2).join(' ');
+        }
+
+        setPersonalInfo({ firstName, lastName });
       }
 
     } catch (err) {
@@ -144,12 +150,21 @@ export default function Step1Profile() {
         <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-4">
           {t('builder.photo')}
         </h3>
-        <div className="flex items-center gap-5">
+          <div className="flex items-center gap-5">
           <div
+            role="button"
+            tabIndex={0}
+            aria-label={t('builder.uploadPhoto')}
             className={`w-24 h-24 rounded-full bg-gray-100 border-2 border-dashed flex items-center justify-center overflow-hidden cursor-pointer transition-colors ${
               isDragging ? 'border-gray-600 bg-gray-50' : 'border-gray-300 hover:border-gray-400'
             }`}
             onClick={() => fileInputRef.current?.click()}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                fileInputRef.current?.click();
+              }
+            }}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}

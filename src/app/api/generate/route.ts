@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
-import fs from 'fs/promises';
 import path from 'path';
 import { buildPrompts } from '@/lib/prompt-builder';
-import { postProcessLatex, validateBraceBalance, validateResumeSubheading } from '@/lib/latex-postprocessor';
+import { postProcessLatex, validateBraceBalance, validateResumeSubheading } from '@/lib/services/latexProcessor';
+import { loadTemplate } from '@/lib/services/templateLoader';
+import { callGemini } from '@/lib/services/aiService';
 
 // Allow 120s execution time for this route
 export const maxDuration = 120;
@@ -44,86 +45,27 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: `Input too long. Max: resume ${MAX_RESUME}, skills ${MAX_SKILLS}, jobOffer ${MAX_JOB} characters.` }, { status: 400 });
     }
 
-    // Load template file (path changed since PHP backend removal)
-    const texPath = path.join(process.cwd(), 'src', 'app', 'api', 'templates', `${finalTemplateName}.tex`);
+    // Load template file
     let texTemplate = '';
     try {
-      texTemplate = await fs.readFile(texPath, 'utf-8');
-    } catch (e) {
-      // Fallback relative to src/templates for Next.js folder structure if moved
-      try {
-        const altTexPath = path.join(process.cwd(), 'src', 'templates', `${finalTemplateName}.tex`);
-        texTemplate = await fs.readFile(altTexPath, 'utf-8');
-      } catch(e2) {
-        // Fallback relative to public
-        try {
-          const publicTexPath = path.join(process.cwd(), 'public', 'templates', `${finalTemplateName}.tex`);
-          texTemplate = await fs.readFile(publicTexPath, 'utf-8');
-        } catch (e3) {
-            return NextResponse.json({ error: 'Template file not found: ' + finalTemplateName + ' checked multiple paths.' }, { status: 400 });
-        }
-      }
+      texTemplate = await loadTemplate(finalTemplateName);
+    } catch (e: any) {
+      return NextResponse.json({ error: e.message }, { status: 400 });
     }
 
     const [systemPrompt, userPrompt] = buildPrompts(input, texTemplate);
 
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      return NextResponse.json({ error: 'API key not configured' }, { status: 500 });
-    }
-
-    const geminiModels = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-2.0-flash-lite'];
-    let responseText = '{}';
-    let apiErrorDetail = '';
-    let success = false;
-    let statusCode = 500;
-
-    for (const model of geminiModels) {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-      const payload = {
-        contents: [
-          {
-            role: 'user',
-            parts: [{ text: `${systemPrompt}\n\n${userPrompt}` }]
-          }
-        ],
-        generationConfig: {
-          temperature: 0.7,
-          maxOutputTokens: 32768,
-          responseMimeType: 'application/json'
-        }
-      };
-
+    let responseText = '';
+    try {
+      responseText = await callGemini({ system: systemPrompt, user: userPrompt });
+    } catch (e: any) {
+      let errDetails;
       try {
-        const res = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-          // We can't really pass timeout in standard fetch easily inside Next.js core without AbortController,
-          // but Vercel manages the duration.
-        });
-
-        if (res.ok) {
-          const data = await res.json();
-          responseText = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
-          success = true;
-          break;
-        } else {
-          statusCode = res.status;
-          const errBody = await res.json().catch(() => ({}));
-          apiErrorDetail = errBody.error?.message || `HTTP ${res.status}`;
-          if (res.status !== 429) {
-            break; // Break if not rate limited
-          }
-        }
-      } catch (e: any) {
-        apiErrorDetail = e.message;
-        break;
+        errDetails = JSON.parse(e.message);
+        return NextResponse.json(errDetails, { status: errDetails.httpCode !== 500 ? errDetails.httpCode : 502 });
+      } catch {
+        return NextResponse.json({ error: 'AI service returned an error', detail: e.message, httpCode: 500 }, { status: 500 });
       }
-    }
-
-    if (!success) {
-      return NextResponse.json({ error: 'AI service returned an error', detail: apiErrorDetail, httpCode: statusCode }, { status: statusCode !== 500 ? statusCode : 502 });
     }
 
     let parsed = null;
@@ -143,9 +85,6 @@ export async function POST(req: Request) {
         }
       }
       
-      // Fix unescaped newlines in json strings or other common formatting errors by Gemini
-      // If it contains literal newlines inside strings, JSON.parse will fail.
-      // A quick heuristic: if JSON.parse fails, we could try to sanitize but for now just parse
       parsed = JSON.parse(cleanedText);
     } catch (e: any) {
       console.error('Parse Error - Original Text:', responseText);
@@ -197,19 +136,9 @@ export async function POST(req: Request) {
       }
     }
 
-    return NextResponse.json({
-      success: true,
-      data: {
-        latexCode: latexOutput,
-        motivationLetter: parsed.motivationLetter || '',
-        candidacyEmail: parsed.candidacyEmail || ''
-      },
-      remaining: 100 // Mock or implement if you port rate limiting
-    });
-
-  } catch (error: any) {
-    console.error('Generation Error:', error);
-    return NextResponse.json({ error: 'Internal Server Error', detail: error.stack }, { status: 500 });
+    return NextResponse.json({ data: { ...parsed, latexCode: latexOutput } });
+  } catch (e: any) {
+    console.error('Route Uncaught Error:', e);
+    return NextResponse.json({ error: 'Internal Server Error', detail: e.message }, { status: 500 });
   }
 }
-

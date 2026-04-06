@@ -123,7 +123,12 @@
     "importGithub": "Import from GitHub",
     "githubUsername": "GitHub Username",
     "importing": "Importing...",
-    "githubUrl": "GitHub Profile URL"
+    "githubUrl": "GitHub Profile URL",
+    "githubRateLimit": "GitHub API rate limit exceeded. Please try again later.",
+    "githubNotFound": "User not found.",
+    "githubError": "Network error ({status}).",
+    "githubInvalid": "Invalid GitHub username.",
+    "githubEmpty": "Please enter a valid GitHub URL or username."
   },
   "results": {
     "cvTitle": "Tailored CV",
@@ -153,7 +158,8 @@
     "modern_image": "Modern with Image",
     "modern_imageDesc": "Modern template based on Professional, with profile photo integration",
     "one_and_half_column": "1.5 Columns",
-    "one_and_half_columnDesc": "Modern 1.5 columns CV template with photo, icons, and Roboto style"
+    "one_and_half_columnDesc": "Modern 1.5 columns CV template with photo, icons, and Roboto style",
+    "selected": "Selected"
   },
   "common": {
     "loading": "Loading...",

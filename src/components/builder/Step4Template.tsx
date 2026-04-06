@@ -3,12 +3,7 @@
 import { useCVStore } from '@/stores/cv-store';
 import { useTranslations } from '@/lib/i18n';
 import { Check } from 'lucide-react';
-import { templateList } from '@/templates/registry';
-
-const accentColors: Record<string, string> = {
-  rezume: '#0000FF',
-  modern_image: '#0E5484',
-};
+import { templateList, getTemplateInfo } from '@/templates/registry';
 
 export default function Step4Template() {
   const { t } = useTranslations();
@@ -16,24 +11,36 @@ export default function Step4Template() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-1">
+      <div className="border-b border-gray-200 pb-4 mb-8">
+        <h2 className="text-2xl font-bold text-gray-900">
           {t('builder.step4Title')}
-        </h3>
-        <p className="text-sm text-gray-500 mb-6">{t('builder.step4Desc')}</p>
+        </h2>
+        <p className="mt-2 text-md text-gray-600">
+          {t('builder.step4Desc')}
+        </p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 max-w-4xl mx-auto">
+      {/* Aria Live region for template selection voice announcement */}
+      <div aria-live="polite" className="sr-only">
+        {selectedTemplate ? `Le template ${getTemplateInfo(selectedTemplate)?.name} est actuellement sélectionné.` : ''}
+      </div>
+
+      <div 
+        className="grid grid-cols-1 sm:grid-cols-2 gap-8 max-w-4xl mx-auto"
+        role="group"
+        aria-label="Sélection de template"
+      >
         {templateList.map((tmpl) => {
           const isSelected = selectedTemplate === tmpl.id;
           const nameKey = `templates.${tmpl.id}` as any;
           const descKey = `templates.${tmpl.id}Desc` as any;
-          const accent = accentColors[tmpl.id] || '#0E5484';
+          const accent = tmpl.primaryColor || '#0E5484';
 
           return (
             <button
               key={tmpl.id}
               onClick={() => setSelectedTemplate(tmpl.id)}
+              aria-pressed={isSelected}
               className={`group flex flex-col relative text-left rounded-2xl border-2 transition-all duration-300 ease-in-out bg-white overflow-hidden ${
                 isSelected
                   ? 'border-indigo-600 shadow-[0_8px_30px_rgb(0,0,0,0.12)] ring-4 ring-indigo-50/50 scale-[1.02] transform'
@@ -91,7 +98,7 @@ export default function Step4Template() {
                   </h4>
                   {isSelected && (
                     <span className="text-[10px] uppercase font-bold tracking-wider text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-full inline-block">
-                      Sélectionné
+                      {t('templates.selected')}
                     </span>
                   )}
                 </div>

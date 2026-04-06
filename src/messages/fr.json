@@ -123,7 +123,12 @@
     "importGithub": "Importer depuis GitHub",
     "githubUsername": "Nom d'utilisateur GitHub",
     "importing": "Importation...",
-    "githubUrl": "Lien du profil GitHub"
+    "githubUrl": "Lien du profil GitHub",
+    "githubRateLimit": "Limite GitHub API atteinte. Réessayez plus tard.",
+    "githubNotFound": "Utilisateur non trouvé.",
+    "githubError": "Erreur réseau ({status}).",
+    "githubInvalid": "Pseudo GitHub invalide.",
+    "githubEmpty": "Veuillez entrer une URL ou un pseudo GitHub valide."
   },
   "results": {
     "cvTitle": "CV Adapté",
@@ -153,7 +158,8 @@
     "modern_image": "Moderne avec Image",
     "modern_imageDesc": "Template moderne basé sur Professional, avec intégration de photo de profil",
     "one_and_half_column": "1.5 Colonnes",
-    "one_and_half_columnDesc": "Template CV moderne 1.5 colonnes avec photo, icônes, et style Roboto"
+    "one_and_half_columnDesc": "Template CV moderne 1.5 colonnes avec photo, icônes, et style Roboto",
+    "selected": "Sélectionné"
   },
   "common": {
     "loading": "Chargement...",
