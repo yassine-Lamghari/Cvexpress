@@ -66,6 +66,22 @@ export interface GeneratedOutput {
   latexCode?: string;
 }
 
+export interface SendApplicationPayload {
+  recipientEmail: string;
+  recipientName?: string;
+  companyName?: string;
+  subject: string;
+  emailBody: string;
+  candidateEmail: string;
+  candidateFullName: string;
+  template: string;
+  latexCode: string;
+  photo?: string;
+  motivationLetter: string;
+  includeCvPdf: boolean;
+  includeLetterPdf: boolean;
+}
+
 export interface TemplateInfo {
   id: string;
   name: string;

@@ -49,4 +49,25 @@ export const cvSchema = z.object({
   certifications: z.array(z.object({ name: z.string(), issuer: z.string() })),
 });
 
+export const sendApplicationSchema = z.object({
+  recipientEmails: z.array(z.string().email('Email Invalide')).min(1, 'Au moins un email est requis'),
+  recipientName: z.string().max(120).optional(),
+  companyName: z.string().max(120).optional(),
+  subject: z
+    .string()
+    .min(3, 'Subject is too short')
+    .max(180, 'Subject is too long')
+    .refine((value) => !/[\r\n]/.test(value), 'Subject contains invalid characters'),
+  emailBody: z.string().min(20, 'Email is too short').max(8000, 'Email is too long'),
+  candidateEmail: z.string().email('Invalid candidate email'),
+  candidateFullName: z.string().min(2).max(120),
+  template: z.string().min(2).max(60),
+  latexCode: z.string().min(20, 'Missing LaTeX code'),
+  photo: z.string().optional(),
+  motivationLetter: z.string().min(20, 'Motivation letter is too short').max(12000),
+  includeCvPdf: z.boolean().default(true),
+  includeLetterPdf: z.boolean().default(true),
+});
+
 export type CVDataInput = z.infer<typeof cvSchema>;
+export type SendApplicationInput = z.infer<typeof sendApplicationSchema>;

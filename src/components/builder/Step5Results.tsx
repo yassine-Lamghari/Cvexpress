@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useCVStore } from '@/stores/cv-store';
 import { useTranslations } from '@/lib/i18n';
 import { LATEX_API_URL } from '@/lib/api-config';
-import { Download, Copy, Check, RefreshCw, ArrowLeft, FileText, Mail, Sparkles, Pencil, Code, Eye, ChevronDown, ChevronUp, Columns2, Maximize2, MousePointerClick, Save, Undo, Redo } from 'lucide-react';
+import { Download, Copy, Check, RefreshCw, ArrowLeft, FileText, Mail, Sparkles, Code, Eye, ChevronDown, ChevronUp, Columns2, Maximize2, MousePointerClick, Save, Send } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { LatexCodePreview } from '@/components/preview/registry';
 import ClickablePreview from '@/components/editor/ClickablePreview';
@@ -14,6 +14,9 @@ import UndoRedoControls from '@/components/editor/UndoRedoControls';
 import type { ParsedSection } from '@/lib/latex-parser';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { useSaveCV } from '@/lib/use-save-cv';
+import AuthModal from '@/components/auth/AuthModal';
+import SendApplicationModal from '@/components/builder/SendApplicationModal';
+import { supabase } from '@/lib/supabase';
 
 import { useAIEdit } from '@/lib/use-ai-edit';
 
@@ -25,14 +28,11 @@ export default function Step5Results() {
     generatedOutput, 
     setGeneratedOutput, 
     updateLatexCode,
-    undoLatex,
-    redoLatex,
-    latexHistoryIndex,
-    latexHistory,
     setCurrentStep, 
     selectedTemplate, 
     locale, 
-    cvData 
+    cvData,
+    jobOffer,
   } = useCVStore();
   const { user } = useAuth();
   const { saveCV, saving, saveStatus } = useSaveCV();
@@ -46,9 +46,16 @@ export default function Step5Results() {
   const [editAnchorRect, setEditAnchorRect] = useState<DOMRect | null>(null);
   const [editLoading, setEditLoading] = useState(false);
   const [advancedMode, setAdvancedMode] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showSendModal, setShowSendModal] = useState(false);
+  const [sendingApplication, setSendingApplication] = useState(false);
+  const [sendStatus, setSendStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [sendError, setSendError] = useState('');
+  const [sendWarning, setSendWarning] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const editorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const previewContainerRef = useRef<HTMLDivElement>(null);
+  const { editSection } = useAIEdit();
 
   // Sync local editor with store
   useEffect(() => {
@@ -82,6 +89,99 @@ export default function Step5Results() {
     setTimeout(() => setCopiedEmail(false), 2000);
   };
 
+  const handleOpenSendModal = () => {
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
+
+    setSendError('');
+    setSendWarning('');
+    setSendStatus('idle');
+    setShowSendModal(true);
+  };
+
+  const handleSendApplication = async (payload: {
+    recipientEmails: string[];
+    recipientName?: string;
+    companyName?: string;
+    subject: string;
+    emailBody: string;
+    includeCvPdf: boolean;
+    includeLetterPdf: boolean;
+  }) => {
+    if (!generatedOutput?.latexCode) {
+      setSendStatus('error');
+      setSendError(t('results.sendError'));
+      return;
+    }
+
+    const { data } = await supabase.auth.getSession();
+    const token = data?.session?.access_token;
+    if (!token) {
+      setShowAuthModal(true);
+      return;
+    }
+
+    const candidateEmail = (user?.email || cvData.personalInfo.email || '').trim();
+    const candidateFullName = `${cvData.personalInfo.firstName || ''} ${cvData.personalInfo.lastName || ''}`.trim();
+
+    if (!candidateEmail || !candidateFullName) {
+      setSendStatus('error');
+      setSendError(t('results.profileRequiredForSend'));
+      return;
+    }
+
+    setSendingApplication(true);
+    setSendError('');
+    setSendWarning('');
+
+    try {
+      const response = await fetch('/api/applications/send', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          recipientEmails: payload.recipientEmails,
+          recipientName: payload.recipientName,
+          companyName: payload.companyName,
+          subject: payload.subject,
+          emailBody: payload.emailBody,
+          candidateEmail,
+          candidateFullName,
+          template: selectedTemplate,
+          latexCode: generatedOutput.latexCode,
+          photo: cvData.personalInfo?.photo || '',
+          motivationLetter: generatedOutput.motivationLetter || '',
+          includeCvPdf: payload.includeCvPdf,
+          includeLetterPdf: payload.includeLetterPdf,
+        }),
+      });
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({ error: 'Server error', detail: '' }));
+        const message = errData.detail ? `${errData.error}: ${errData.detail}` : (errData.error || `HTTP ${response.status}`);
+        throw new Error(message);
+      }
+
+      const result = await response.json().catch(() => ({ warnings: [] as string[] }));
+      if (Array.isArray(result.warnings) && result.warnings.length > 0) {
+        setSendWarning(result.warnings.join(' | '));
+      }
+
+      setSendStatus('success');
+      setShowSendModal(false);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : t('results.sendError');
+      setSendStatus('error');
+      setSendError(message);
+    } finally {
+      setSendingApplication(false);
+    }
+  };
+
   const handleLocalLatexChange = (value: string) => {
     setLocalLatex(value);
     setHasUnapplied(value !== generatedOutput?.latexCode);
@@ -108,8 +208,6 @@ export default function Step5Results() {
     setHasUnapplied(false);
   };
 
-const { editSection, loading: isEditLoading } = useAIEdit();
-  
   const handleSectionClick = (section: ParsedSection, rect: DOMRect) => {
     setEditingSection(section);
     setEditAnchorRect(rect);
@@ -444,13 +542,37 @@ const { editSection, loading: isEditLoading } = useAIEdit();
               className="w-full text-sm text-gray-700 leading-relaxed font-mono bg-gray-50 border border-gray-200 rounded-md p-3 focus:outline-none focus:ring-1 focus:ring-gray-400 resize-y"
             />
           </div>
-          <button
-            onClick={handleCopyEmail}
-            className="flex items-center gap-2 px-5 py-2.5 bg-gray-900 text-white rounded-md hover:bg-gray-800 hover:shadow-md transition-all active:scale-95 transition-colors text-sm font-medium"
-          >
-            {copiedEmail ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-            {copiedEmail ? t('results.copied') : t('results.copyEmail')}
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={handleCopyEmail}
+              className="flex items-center gap-2 px-5 py-2.5 bg-gray-900 text-white rounded-md hover:bg-gray-800 hover:shadow-md transition-all active:scale-95 transition-colors text-sm font-medium"
+            >
+              {copiedEmail ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+              {copiedEmail ? t('results.copied') : t('results.copyEmail')}
+            </button>
+            <button
+              onClick={handleOpenSendModal}
+              className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 hover:shadow-md transition-all active:scale-95 transition-colors text-sm font-medium"
+            >
+              <Send className="w-4 h-4" />
+              {t('results.sendApplication')}
+            </button>
+          </div>
+          {sendStatus === 'success' && (
+            <p className="text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-md px-3 py-2">
+              {t('results.sendSuccess')}
+            </p>
+          )}
+          {sendWarning && (
+            <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
+              {sendWarning}
+            </p>
+          )}
+          {sendStatus === 'error' && (
+            <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-md px-3 py-2">
+              {sendError || t('results.sendError')}
+            </p>
+          )}
         </div>
       )}
 
@@ -471,6 +593,20 @@ const { editSection, loading: isEditLoading } = useAIEdit();
           {t('results.changeTemplate')}
         </button>
       </div>
+
+      {showSendModal && (
+        <SendApplicationModal
+          open={showSendModal}
+          loading={sendingApplication}
+          jobOffer={jobOffer}
+          defaultBody={generatedOutput.candidacyEmail}
+          defaultSubject={`${locale === 'fr' ? 'Candidature -' : 'Application -'} ${cvData.personalInfo.firstName || ''} ${cvData.personalInfo.lastName || ''}`.trim()}
+          onClose={() => setShowSendModal(false)}
+          onSubmit={handleSendApplication}
+        />
+      )}
+
+      <AuthModal open={showAuthModal} onClose={() => setShowAuthModal(false)} />
     </div>
   );
 }

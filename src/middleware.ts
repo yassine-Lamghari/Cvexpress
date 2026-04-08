@@ -28,7 +28,8 @@ export async function middleware(request: NextRequest) {
     rateLimiter &&
     (request.nextUrl.pathname.startsWith('/api/generate') ||
      request.nextUrl.pathname.startsWith('/api/edit') ||
-     request.nextUrl.pathname.startsWith('/api/latex/preview'))
+      request.nextUrl.pathname.startsWith('/api/latex/preview') ||
+      request.nextUrl.pathname.startsWith('/api/applications/send'))
   ) {
     try {
       const ip = (request as any).ip ?? request.headers.get('x-forwarded-for') ?? '127.0.0.1';
