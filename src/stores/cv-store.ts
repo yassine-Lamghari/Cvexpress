@@ -15,7 +15,7 @@ export const useCVStore = create<CVStore>()(
     }),
     {
       name: 'cv-builder-storage',
-      storage: createJSONStorage(() => (typeof window !== 'undefined' ? sessionStorage : ({} as any))),
+      storage: createJSONStorage(() => (typeof window !== 'undefined' ? localStorage : ({} as any))),
       version: 3,
       partialize: (state) => {
         // Exclude photo from persistence to avoid localStorage quota issues

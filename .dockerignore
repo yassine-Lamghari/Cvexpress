@@ -1,0 +1,15 @@
+Dockerfile
+.dockerignore
+node_modules
+npm-debug.log
+README.md
+.next
+.git
+.latex_tmp
+tempOut
+tests
+Cvsimages
+out.txt
+out2.txt
+*.aux
+*.tex
