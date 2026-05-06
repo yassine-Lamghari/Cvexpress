@@ -13,6 +13,13 @@ COPY . .
 # Désactiver la télémétrie Next.js
 ENV NEXT_TELEMETRY_DISABLED=1
 
+# Variables d'environnement requises pour le build Next.js (NEXT_PUBLIC_*)
+ARG NEXT_PUBLIC_SUPABASE_URL
+ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL
+
+ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
+ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
+
 # Construire l'application (standalone)
 RUN npm run build
 
