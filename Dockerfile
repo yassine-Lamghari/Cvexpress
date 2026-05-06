@@ -34,7 +34,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     texlive-latex-extra \
     texlive-fonts-recommended \
     texlive-fonts-extra \
-    texlive-generic-extra \
+    texlive-plain-generic \
     poppler-utils \
     imagemagick \
     && apt-get clean \
