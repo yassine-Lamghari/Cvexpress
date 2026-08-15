@@ -27,12 +27,15 @@ export async function middleware(request: NextRequest) {
   if (
     rateLimiter &&
     (request.nextUrl.pathname.startsWith('/api/generate') ||
-     request.nextUrl.pathname.startsWith('/api/edit') ||
+      request.nextUrl.pathname.startsWith('/api/edit') ||
       request.nextUrl.pathname.startsWith('/api/latex/preview') ||
+      (request.nextUrl.pathname === '/api/latex/jobs' && request.method === 'POST') ||
       request.nextUrl.pathname.startsWith('/api/applications/send'))
   ) {
     try {
-      const ip = (request as any).ip ?? request.headers.get('x-forwarded-for') ?? '127.0.0.1';
+      const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+        || request.headers.get('x-real-ip')
+        || '127.0.0.1';
       const { success, limit, reset, remaining } = await rateLimiter.limit(`ratelimit_${ip}`);
       
       response.headers.set('X-RateLimit-Limit', limit.toString());

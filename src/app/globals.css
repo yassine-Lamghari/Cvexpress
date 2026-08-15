@@ -5,13 +5,15 @@
   --foreground: #111111;
   --accent: #f59e0b;
   --accent-strong: #d97706;
+  --font-app-sans: "Segoe UI", Arial, Helvetica, sans-serif;
+  --font-app-mono: "Cascadia Code", Consolas, "Courier New", monospace;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-app-sans);
+  --font-mono: var(--font-app-mono);
 }
 
 body {

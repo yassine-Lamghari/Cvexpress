@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { useCVStore } from '@/stores/cv-store';
 import type { GeneratedOutput } from '@/types/cv';
+import { generateAndDownloadPdf } from '@/lib/client-pdf-jobs';
 
 interface SavedCV {
   id: string;
@@ -145,37 +146,16 @@ const downloadCV = useCallback(async (cvId: string, title: string, template: str
     }
 
     try {
-      // Use the helper to get the correct API URL (handles NEXT_PUBLIC_LATEX_API_URL or defaults)
-      const apiUrl = process.env.NEXT_PUBLIC_LATEX_API_URL || '/api';
-      const endpoint = `${apiUrl}/latex/download`;
-
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ' + token,
-        },
-        body: JSON.stringify({
-          latexCode: outputData.latex_code,
-          template: template || 'professional',
-          photo
-        }),
+      await generateAndDownloadPdf({
+        token,
+        latexCode: outputData.latex_code,
+        template: template || 'professional',
+        photo,
+        filename: `${title || 'CV'}.pdf`,
+        cvId,
       });
-
-      if (!response.ok) throw new Error(`Erreur de génération du PDF: ${response.statusText}`);
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${title || 'CV'}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-      
       return true;
-    } catch (err) {
+    } catch {
       // Download failed - user already sees the failure via the return value
       return false;
     }

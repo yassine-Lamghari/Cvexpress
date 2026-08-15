@@ -23,8 +23,8 @@ ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
 # Construire l'application (standalone)
 RUN npm run build
 
-# -- Étape 2 : Production (Runner) --
-FROM node:20-bullseye-slim AS runner
+# -- Étape 2 : base d'exécution commune --
+FROM node:20-bullseye-slim AS runtime-base
 
 WORKDIR /app
 
@@ -51,11 +51,16 @@ ENV MAGICK_BIN=magick
 # Créer le répertoire temporaire pour la compilation LaTeX et lui donner les droits d'écriture
 RUN mkdir -p .latex_tmp && chmod 777 .latex_tmp
 
+# -- Étape 3 : serveur Next.js --
+FROM runtime-base AS runner
+
 # Copier les fichiers générés par l'étape de build
 # Next.js "standalone" génère un serveur minimaliste contenant uniquement le nécessaire
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
+# Les modèles sont lus depuis le système de fichiers par les routes API.
+COPY --from=builder /app/src/templates ./src/templates
 
 EXPOSE 3000
 ENV PORT=3000
