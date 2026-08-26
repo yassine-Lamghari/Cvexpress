@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { callNvidia } from '@/lib/services/aiService';
 
 export const maxDuration = 120;
 
@@ -20,11 +21,6 @@ export async function POST(req: Request) {
 
     if (instruction.length > 1000) {
       return NextResponse.json({ error: 'Instruction too long (max 1000 characters)' }, { status: 400 });
-    }
-
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      return NextResponse.json({ error: 'API key not configured' }, { status: 500 });
     }
 
     let systemPrompt = '';
@@ -61,55 +57,17 @@ RULES:
 
     const userPrompt = `## DOCUMENT LATEX ACTUEL:\n${latexCode}\n\n## INSTRUCTION DE MODIFICATION:\n${instruction}`;
 
-    const geminiModels = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-2.0-flash-lite'];
     let responseText = '';
-    let apiErrorDetail = '';
-    let success = false;
-    let statusCode = 500;
-
-    for (const model of geminiModels) {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-      const payload = {
-        contents: [
-          {
-            role: 'user',
-            parts: [{ text: `${systemPrompt}\n\n${userPrompt}` }]
-          }
-        ],
-        generationConfig: {
-          temperature: 0.7,
-          maxOutputTokens: 32768,
-        }
-      };
-
+    try {
+      responseText = await callNvidia({ system: systemPrompt, user: userPrompt });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown NVIDIA API error';
       try {
-        const res = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-
-        if (res.ok) {
-          const data = await res.json();
-          responseText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-          success = true;
-          break;
-        } else {
-          statusCode = res.status;
-          const errBody = await res.json().catch(() => ({}));
-          apiErrorDetail = errBody.error?.message || `HTTP ${res.status}`;
-          if (res.status !== 429) {
-            break;
-          }
-        }
-      } catch (e: any) {
-        apiErrorDetail = e.message;
-        break;
+        const details = JSON.parse(message);
+        return NextResponse.json(details, { status: details.httpCode || 502 });
+      } catch {
+        return NextResponse.json({ error: 'AI service returned an error', detail: message }, { status: 502 });
       }
-    }
-
-    if (!success) {
-      return NextResponse.json({ error: 'AI service returned an error', detail: apiErrorDetail }, { status: statusCode !== 500 ? statusCode : 502 });
     }
 
     // Clean up markdown markers if AI still added them
@@ -126,7 +84,8 @@ RULES:
 
     return NextResponse.json({ success: true, latexCode: cleanCode, remaining: 100 });
 
-  } catch (error: any) {
-    return NextResponse.json({ error: 'Internal Server Error', detail: error.message }, { status: 500 });
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : 'Unknown error';
+    return NextResponse.json({ error: 'Internal Server Error', detail }, { status: 500 });
   }
 }

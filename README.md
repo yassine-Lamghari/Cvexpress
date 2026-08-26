@@ -1,12 +1,12 @@
 # CVzzer
 
-AI-powered CV builder that generates tailored resumes, cover letters, and application emails from your profile and a job posting. Built with Next.js (static frontend) + PHP (LaTeX compilation API) + Google Gemini AI.
+AI-powered CV builder that generates tailored resumes, cover letters, and application emails from your profile and a job posting. Built with Next.js, NVIDIA AI, Celery/Redis, PostgreSQL/Supabase, and MinIO.
 
 ## Features
 
 - Multi-step builder: profile, skills, job offer, template selection, AI generation
 - 3 LaTeX templates: Professional, Charles, Rezume
-- AI-powered CV tailoring via Google Gemini
+- AI-powered CV tailoring via NVIDIA Integrate (`deepseek-ai/deepseek-v4-flash-0731`)
 - AI edit bar for post-generation refinements
 - LaTeX code preview and editor
 - PDF download via server-side LaTeX compilation
@@ -15,7 +15,6 @@ AI-powered CV builder that generates tailored resumes, cover letters, and applic
 ## Prerequisites
 
 - **Node.js** 18+
-- **PHP** 8.1+
 - **pdflatex** (via [TeX Live](https://www.tug.org/texlive/) or [MiKTeX](https://miktex.org/))
 - **pdftoppm** (via [poppler-utils](https://poppler.freedesktop.org/) — for PDF preview)
 - **ImageMagick** (optional — `magick` binary)
@@ -35,28 +34,18 @@ cp .env.example .env.local
 ```
 
 Edit `.env.local` and fill in your values:
-- `GEMINI_API_KEY` — get a free key at [Google AI Studio](https://aistudio.google.com/apikey)
-- `NEXT_PUBLIC_LATEX_API_URL` — defaults to `http://localhost:8000`
-
-3. **Verify LaTeX dependencies:**
-
-```bash
-php -S localhost:8000 -t api/
-# Then visit: http://localhost:8000/health.php
-```
-
-The health endpoint will report which binaries are found.
+- `NVIDIA_API_KEY` — server-side key for the NVIDIA Integrate API
+- `NVIDIA_BASE_URL` — defaults to `https://integrate.api.nvidia.com/v1`
+- `NVIDIA_MODEL` — defaults to `deepseek-ai/deepseek-v4-flash-0731`
+- `NVIDIA_FALLBACK_MODEL` — NVIDIA fallback used only if the primary model returns `404`
+- `TASK_API_SECRET` — shared only by Next.js and the private Celery task API
 
 ## Development
 
-Run both servers:
+The complete development stack runs in Docker:
 
-```bash
-# Terminal 1 — Next.js frontend
-npm run dev
-
-# Terminal 2 — PHP API server
-php -S localhost:8000 -t api/
+```powershell
+docker compose --env-file .env.docker up -d --build
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
@@ -117,6 +106,23 @@ Editor and set `SUPABASE_SERVICE_ROLE_KEY` in `.env.docker`. This key is private
 and is supplied only to the Celery worker. `TASK_API_SECRET` protects the
 internal enqueue endpoint and is never exposed to browser code.
 
+### Asynchronous NVIDIA AI pipeline
+
+CV generation also leaves the web request immediately and runs in Celery:
+
+1. `POST /api/generate` validates the input, loads the selected template, and
+   submits `cvzzer.generate_cv` to the private task API.
+2. The task API publishes the job to Redis on the `ai-generation` queue.
+3. Celery calls NVIDIA Integrate with the configured DeepSeek model and consumes
+   its streamed response without holding the Next.js request open.
+4. The browser polls the signed `GET /api/generate/{jobId}` URL until the result
+   has been validated and post-processed.
+
+The worker uses the requested NVIDIA profile: temperature `1`, top-p `0.95`,
+up to `16384` output tokens, thinking enabled, and high reasoning effort. If
+NVIDIA reports that this primary function is unavailable, CVzzer retries once
+with `NVIDIA_FALLBACK_MODEL` so generation remains usable.
+
 Useful commands:
 
 ```powershell
@@ -131,11 +137,11 @@ deletes stored objects and should only be used intentionally.
 ## Architecture
 
 ```
-Browser → Next.js API → private task-api → Redis broker → Celery pdf-worker
-             │                                      │             │
-             │                                      │             ├─ pdflatex
-             │                                      │             ├─ MinIO
-             │                                      │             └─ Supabase/PostgreSQL
+Browser → Next.js API → private task-api → Redis broker → Celery worker
+             │                                      │          ├─ NVIDIA AI (streaming)
+             │                                      │          ├─ pdflatex
+             │                                      │          ├─ MinIO
+             │                                      │          └─ Supabase/PostgreSQL
              ├─ Supabase authentication             │
              └─ authenticated MinIO downloads       └─ Redis result backend
 ```
@@ -165,13 +171,8 @@ src/
   stores/           # Zustand state management
   types/            # TypeScript types
   messages/         # i18n translation files (en.json, fr.json)
-api/
-  generate.php      # AI CV generation endpoint (Gemini)
-  edit.php           # AI edit endpoint (Gemini)
-  latex-download.php # LaTeX → PDF compilation
-  latex-preview.php  # LaTeX → PNG preview
-  health.php         # Dependency health check
-  cors.php           # Shared CORS configuration
-  latex-config.php   # Binary path detection
-  templates/         # .tex template files
+services/pdf-worker/
+  api.py             # Private enqueue/status API
+  tasks.py           # NVIDIA generation and LaTeX/PDF Celery tasks
+  celery_app.py      # Redis broker/result configuration
 ```

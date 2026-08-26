@@ -1,6 +1,7 @@
 'use client';
 
 import { ArrowLeft, ArrowRight, Loader2, Sparkles } from 'lucide-react';
+import Link from 'next/link';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import StepIndicator from '@/components/builder/StepIndicator';
@@ -11,7 +12,6 @@ import Step4Template from '@/components/builder/Step4Template';
 import Step5Results from '@/components/builder/Step5Results';
 import AdBanner from '@/components/ads/AdBanner';
 import { useCVStore } from '@/stores/cv-store';
-import { LATEX_API_URL } from '@/lib/api-config';
 import { useTranslations } from '@/lib/i18n';
 import type { BuilderStep } from '@/types/cv';
 
@@ -31,10 +31,6 @@ export default function BuilderPage() {
     setGeneratedOutput,
     setGenerationError,
     generationError,
-    setCVData,
-    setJobOffer,
-    setRawResume,
-    setRawSkills,
   } = useCVStore();
 
 
@@ -44,8 +40,8 @@ export default function BuilderPage() {
 
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 120000);
-      const response = await fetch(`${LATEX_API_URL}/generate.php`, {
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
+      const response = await fetch('/api/generate', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -78,8 +74,34 @@ export default function BuilderPage() {
         throw new Error((errorData.error || 'Generation failed') + detail);
       }
 
-      const result = await response.json();
-      const aiData = result.data;
+      const queuedJob = await response.json() as { statusUrl?: string };
+      if (!queuedJob.statusUrl) {
+        throw new Error('AI generation job did not return a status URL');
+      }
+
+      const deadline = Date.now() + 16 * 60 * 1000;
+      let aiData: { motivationLetter?: string; candidacyEmail?: string; latexCode?: string } | null = null;
+      while (Date.now() < deadline) {
+        await new Promise((resolve) => setTimeout(resolve, 3000));
+        const statusResponse = await fetch(queuedJob.statusUrl, {
+          cache: 'no-store',
+          headers: { 'Cache-Control': 'no-cache' },
+        });
+        const job = await statusResponse.json();
+        if (!statusResponse.ok) {
+          throw new Error(job.detail || job.error || 'Unable to read AI generation status');
+        }
+        if (job.status === 'completed') {
+          aiData = job.data;
+          break;
+        }
+        if (job.status === 'failed') {
+          throw new Error(job.error || 'AI generation failed');
+        }
+      }
+      if (!aiData) {
+        throw new Error('AI generation timed out after 16 minutes');
+      }
 
       setGeneratedOutput({
         adaptedCV: {
@@ -160,7 +182,7 @@ export default function BuilderPage() {
 
           {/* Breadcrumb */}
           <nav className="text-xs text-gray-400 mb-6">
-            <a href="/" className="hover:text-gray-600 cursor-pointer">{t('nav.home')}</a>
+            <Link href="/" className="hover:text-gray-600 cursor-pointer">{t('nav.home')}</Link>
             <span className="mx-2">/</span>
             <span className="text-gray-700 font-medium">{t('builder.title')}</span>
           </nav>

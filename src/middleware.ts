@@ -26,7 +26,7 @@ export async function middleware(request: NextRequest) {
   const rateLimiter = getRateLimiter();
   if (
     rateLimiter &&
-    (request.nextUrl.pathname.startsWith('/api/generate') ||
+    ((request.nextUrl.pathname === '/api/generate' && request.method === 'POST') ||
       request.nextUrl.pathname.startsWith('/api/edit') ||
       request.nextUrl.pathname.startsWith('/api/latex/preview') ||
       (request.nextUrl.pathname === '/api/latex/jobs' && request.method === 'POST') ||

@@ -31,10 +31,9 @@ celery_app.conf.update(
     result_expires=86_400,
     task_soft_time_limit=150,
     task_time_limit=180,
-    broker_transport_options={"visibility_timeout": 600},
+    broker_transport_options={"visibility_timeout": 1_200},
     result_backend_transport_options={
-        "visibility_timeout": 600,
+        "visibility_timeout": 1_200,
         "global_keyprefix": "cvzzer-celery-",
     },
 )
-

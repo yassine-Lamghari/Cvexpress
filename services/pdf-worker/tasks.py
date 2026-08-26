@@ -1,6 +1,7 @@
 import base64
 import hashlib
 import io
+import json
 import os
 import re
 import shutil
@@ -136,6 +137,98 @@ def upload_pdf(key: str, pdf: bytes) -> None:
         Body=pdf,
         ContentType="application/pdf",
     )
+
+
+@celery_app.task(
+    bind=True,
+    name="cvzzer.generate_cv",
+    max_retries=1,
+    acks_late=True,
+    reject_on_worker_lost=True,
+    soft_time_limit=890,
+    time_limit=900,
+)
+def generate_cv(self, payload: dict) -> dict:
+    self.update_state(state="PROGRESS", meta={"progress": 5})
+    base_url = os.getenv("NVIDIA_BASE_URL", "https://integrate.api.nvidia.com/v1").rstrip("/")
+    model = os.getenv("NVIDIA_MODEL", "deepseek-ai/deepseek-v4-flash-0731")
+    fallback_model = os.getenv("NVIDIA_FALLBACK_MODEL", "minimaxai/minimax-m3").strip()
+    api_key = required_env("NVIDIA_API_KEY")
+
+    try:
+        def request_completion(selected_model: str, include_thinking: bool) -> requests.Response:
+            request_body = {
+                "model": selected_model,
+                "messages": [
+                    {"role": "system", "content": str(payload["systemPrompt"])},
+                    {"role": "user", "content": str(payload["userPrompt"])},
+                ],
+                "temperature": 1 if include_thinking else 0.2,
+                "top_p": 0.95,
+                "max_tokens": 16384 if include_thinking else 8192,
+                "stream": True,
+            }
+            if include_thinking:
+                request_body["chat_template_kwargs"] = {
+                    "thinking": True,
+                    "reasoning_effort": "high",
+                }
+            return requests.post(
+                f"{base_url}/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json",
+                },
+                json=request_body,
+                stream=True,
+                timeout=(15, 180),
+            )
+
+        response = request_completion(model, True)
+        if response.status_code == 404 and fallback_model and fallback_model != model:
+            response.close()
+            logger.warning("NVIDIA model %s is unavailable; using fallback %s", model, fallback_model)
+            response = request_completion(fallback_model, False)
+        response.raise_for_status()
+        content_parts: list[str] = []
+        content_length = 0
+        chunk_count = 0
+        for raw_line in response.iter_lines(decode_unicode=True):
+            if isinstance(raw_line, bytes):
+                raw_line = raw_line.decode("utf-8", errors="replace")
+            if not raw_line or not raw_line.startswith("data:"):
+                continue
+            encoded = raw_line[5:].strip()
+            if encoded == "[DONE]":
+                break
+            try:
+                chunk = json.loads(encoded)
+            except json.JSONDecodeError:
+                continue
+            delta = chunk.get("choices", [{}])[0].get("delta", {})
+            text = delta.get("content")
+            if text:
+                text_part = str(text)
+                content_parts.append(text_part)
+                content_length += len(text_part)
+            chunk_count += 1
+            if chunk_count % 100 == 0:
+                progress = min(90, 5 + content_length // 250)
+                self.update_state(state="PROGRESS", meta={"progress": progress})
+
+        content = "".join(content_parts).strip()
+        response.close()
+        if not content:
+            raise RuntimeError("NVIDIA API returned an empty completion")
+        return {
+            "responseText": content,
+            "template": str(payload["template"]),
+            "locale": str(payload["locale"]),
+        }
+    except requests.RequestException as exc:
+        if self.request.retries < self.max_retries:
+            raise self.retry(exc=exc, countdown=5)
+        raise
 
 
 @celery_app.task(

@@ -5,6 +5,7 @@ npm-debug.log
 README.md
 .next
 .git
+.env*
 .latex_tmp
 tempOut
 tests
