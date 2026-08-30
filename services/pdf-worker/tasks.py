@@ -156,23 +156,18 @@ def generate_cv(self, payload: dict) -> dict:
     api_key = required_env("NVIDIA_API_KEY")
 
     try:
-        def request_completion(selected_model: str, include_thinking: bool) -> requests.Response:
+        def request_completion(selected_model: str) -> requests.Response:
             request_body = {
                 "model": selected_model,
                 "messages": [
                     {"role": "system", "content": str(payload["systemPrompt"])},
                     {"role": "user", "content": str(payload["userPrompt"])},
                 ],
-                "temperature": 1 if include_thinking else 0.2,
+                "temperature": 0.2,
                 "top_p": 0.95,
-                "max_tokens": 16384 if include_thinking else 8192,
+                "max_tokens": 8192,
                 "stream": True,
             }
-            if include_thinking:
-                request_body["chat_template_kwargs"] = {
-                    "thinking": True,
-                    "reasoning_effort": "high",
-                }
             return requests.post(
                 f"{base_url}/chat/completions",
                 headers={
@@ -181,14 +176,14 @@ def generate_cv(self, payload: dict) -> dict:
                 },
                 json=request_body,
                 stream=True,
-                timeout=(15, 180),
+                timeout=(15, 90),
             )
 
-        response = request_completion(model, True)
+        response = request_completion(model)
         if response.status_code == 404 and fallback_model and fallback_model != model:
             response.close()
             logger.warning("NVIDIA model %s is unavailable; using fallback %s", model, fallback_model)
-            response = request_completion(fallback_model, False)
+            response = request_completion(fallback_model)
         response.raise_for_status()
         content_parts: list[str] = []
         content_length = 0

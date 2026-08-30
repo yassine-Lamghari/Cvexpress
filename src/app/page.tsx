@@ -76,70 +76,45 @@ export default function HomePage() {
         throw new Error((errorData.error || 'Generation failed') + detail);
       }
 
-      const result = await response.json();
-      const aiData = result.data;
+      const queuedJob = await response.json() as { statusUrl?: string };
+      if (!queuedJob.statusUrl) {
+        throw new Error('AI generation job did not return a status URL');
+      }
 
-      // Build adapted CV from the full structured AI response
-      const aiExperiences = Array.isArray(aiData.experiences) && aiData.experiences.length > 0
-        ? aiData.experiences.map((e: Record<string, string>, i: number) => ({
-            id: String(i + 1),
-            jobTitle: e.jobTitle || '',
-            company: e.company || '',
-            location: e.location || '',
-            startDate: e.startDate || '',
-            endDate: e.endDate || '',
-            description: e.description || '',
-          }))
-        : cvData.experiences;
-
-      const aiEducation = Array.isArray(aiData.education) && aiData.education.length > 0
-        ? aiData.education.map((e: Record<string, string>, i: number) => ({
-            id: String(i + 1),
-            degree: e.degree || '',
-            school: e.school || '',
-            location: e.location || '',
-            startDate: e.startDate || '',
-            endDate: e.endDate || '',
-            description: e.description || '',
-          }))
-        : cvData.education;
-
-      const aiStages = Array.isArray(aiData.stages) && aiData.stages.length > 0
-        ? aiData.stages.map((e: Record<string, string>, i: number) => ({
-            id: String(i + 1),
-            jobTitle: e.jobTitle || '',
-            company: e.company || '',
-            location: e.location || '',
-            startDate: e.startDate || '',
-            endDate: e.endDate || '',
-            description: e.description || '',
-          }))
-        : cvData.stages;
-
-      const aiSkills = Array.isArray(aiData.skills) && aiData.skills.length > 0
-        ? aiData.skills.map((s: Record<string, string>) => ({ name: s.name || '', level: s.level }))
-        : cvData.skills.length > 0
-          ? cvData.skills
-          : rawSkills.split(/[,\n]+/).map((s) => s.trim()).filter(Boolean).map((s) => ({ name: s }));
-
-      const aiLanguages = Array.isArray(aiData.languages) && aiData.languages.length > 0
-        ? aiData.languages.map((l: Record<string, string>) => ({ name: l.name || '', level: l.level || '' }))
-        : cvData.languages;
-
-      const aiCertifications = Array.isArray(aiData.certifications) && aiData.certifications.length > 0
-        ? aiData.certifications.map((c: Record<string, string>) => ({ name: c.name || '', issuer: c.issuer || '', date: c.date || '' }))
-        : cvData.certifications;
+      const deadline = Date.now() + 16 * 60 * 1000;
+      let aiData: { motivationLetter?: string; candidacyEmail?: string; latexCode?: string } | null = null;
+      while (Date.now() < deadline) {
+        await new Promise((resolve) => setTimeout(resolve, 3000));
+        const statusResponse = await fetch(queuedJob.statusUrl, {
+          cache: 'no-store',
+          headers: { 'Cache-Control': 'no-cache' },
+        });
+        const job = await statusResponse.json();
+        if (!statusResponse.ok) {
+          throw new Error(job.detail || job.error || 'Unable to read AI generation status');
+        }
+        if (job.status === 'completed') {
+          aiData = job.data;
+          break;
+        }
+        if (job.status === 'failed') {
+          throw new Error(job.error || 'AI generation failed');
+        }
+      }
+      if (!aiData) {
+        throw new Error('AI generation timed out after 16 minutes');
+      }
 
       const output = {
         adaptedCV: {
           personalInfo: cvData.personalInfo,
-          summary: aiData.summary || '',
-          experiences: aiExperiences,
-          stages: aiStages,
-          education: aiEducation,
-          skills: aiSkills,
-          languages: aiLanguages,
-          certifications: aiCertifications,
+          summary: '',
+          experiences: cvData.experiences,
+          stages: cvData.stages,
+          education: cvData.education,
+          skills: cvData.skills,
+          languages: cvData.languages,
+          certifications: cvData.certifications,
         },
         motivationLetter: aiData.motivationLetter || '',
         candidacyEmail: aiData.candidacyEmail || '',
