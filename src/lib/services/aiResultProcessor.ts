@@ -7,6 +7,42 @@ interface AiGenerationResult {
   [key: string]: unknown;
 }
 
+function repairLatexJsonEscapes(value: string): string {
+  let repaired = '';
+
+  for (let index = 0; index < value.length; index += 1) {
+    const current = value[index];
+    if (current !== '\\') {
+      repaired += current;
+      continue;
+    }
+
+    const next = value[index + 1];
+    const afterNext = value[index + 2];
+    if (!next) {
+      repaired += '\\\\';
+      continue;
+    }
+
+    // JSON escapes such as \n are valid, unless they are actually the beginning
+    // of a LaTeX command (for example \newcommand or \textbf).
+    const isLatexCommandStart = /[bfnrt]/.test(next) && /[A-Za-z@]/.test(afterNext || '');
+    const isUnicodeEscape = next === 'u' && /^[0-9a-fA-F]{4}$/.test(value.slice(index + 2, index + 6));
+    const isValidJsonEscape = next === '\\' || next === '"' || next === '/' ||
+      (/[bfnrt]/.test(next) && !isLatexCommandStart) || isUnicodeEscape;
+
+    if (isValidJsonEscape) {
+      repaired += `\\${next}`;
+      index += 1;
+      continue;
+    }
+
+    repaired += '\\\\';
+  }
+
+  return repaired;
+}
+
 function parseAiJson(responseText: string): AiGenerationResult {
   let cleanedText = responseText.trim();
   const fenced = responseText.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
@@ -19,6 +55,11 @@ function parseAiJson(responseText: string): AiGenerationResult {
   try {
     return JSON.parse(cleanedText) as AiGenerationResult;
   } catch (error) {
+    try {
+      return JSON.parse(repairLatexJsonEscapes(cleanedText)) as AiGenerationResult;
+    } catch {
+      // Fall back to extracting latexCode from partially formed JSON below.
+    }
     const latexMatch = responseText.match(/"latexCode"\s*:\s*"([\s\S]*?)"(?=\s*(?:,|\}$))/m);
     if (latexMatch) {
       try {

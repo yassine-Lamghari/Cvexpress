@@ -136,7 +136,7 @@ Tu dois retourner un JSON avec 3 clés: "latexCode", "motivationLetter", "candid
 3. SÉLECTIONNE les expériences existantes si pertinentes. INVENTE de nouvelles expériences et compétences si le candidat n'en fournit pas assez.
 4. ADAPTE les descriptions aux mots-clés de l'offre d'emploi (optimisation ATS).
 5. ORDONNE les expériences du plus récent au plus ancien.
-6. GARDE INTACT tout le préambule LaTeX.
+6. Retourne UNIQUEMENT le corps du document LaTeX : commence exactement par \\begin{document} et termine par \\end{document}. Ne renvoie ni \\documentclass, ni les \\usepackage, ni les définitions de macros : le serveur réinjecte automatiquement le préambule du modèle.
 
 ### motivationLetter
 - Lettre de motivation de 3-4 paragraphes adaptée à l'offre.
