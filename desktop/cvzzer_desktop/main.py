@@ -65,6 +65,20 @@ QPushButton#workflowCard {
     font-size: 16px;
     font-weight: 600;
 }
+QPushButton#homeButton {
+    background-color: #2563EB;
+    border-color: #60A5FA;
+    color: #FFFFFF;
+    font-weight: 600;
+}
+QPushButton#homeButton:hover {
+    background-color: #1D4ED8;
+}
+QLabel#workflowTitle {
+    color: #F8FAFC;
+    font-size: 20px;
+    font-weight: 700;
+}
 QLineEdit, QPlainTextEdit {
     background-color: #FFFFFF;
     border: 1px solid #94A3B8;
@@ -125,7 +139,7 @@ class OfferWizard(QWizard):
         super().__init__(parent); self.repository = repository
         self.setWindowFlags(Qt.WindowType.Widget)
         self.setWindowTitle('Candidature à partir d’une offre')
-        self.setButtonText(QWizard.WizardButton.CancelButton, 'Retour à l’accueil')
+        self.setOption(QWizard.WizardOption.NoCancelButton, True)
         self.profile = ProfileForm(); self.offer = QPlainTextEdit(); self.analysis_view = QPlainTextEdit(); self.cv_view = QPlainTextEdit(); self.letter_view = QPlainTextEdit()
         self.analysis_view.setReadOnly(True); self.cv_view.setReadOnly(True); self.letter_view.setReadOnly(True)
         self.cv_attachment = ''; self.letter_attachment = ''
@@ -240,41 +254,52 @@ class OfferWizard(QWizard):
 
 class CampaignWizard(QWizard):
     def __init__(self, repository: CVRepository, parent: QWidget | None = None) -> None:
-        super().__init__(parent); self.repository = repository; self.contacts: list[Contact] = []
+        super().__init__(parent); self.repository = repository; self.contacts: list[Contact] = []; self.imported_contacts: list[Contact] = []
         self.setWindowFlags(Qt.WindowType.Widget)
         self.setWindowTitle('Candidature vers une base de contacts')
-        self.setButtonText(QWizard.WizardButton.CancelButton, 'Retour à l’accueil')
+        self.setOption(QWizard.WizardOption.NoCancelButton, True)
+        self.setButtonText(QWizard.WizardButton.FinishButton, 'Envoyer le mail')
         self.addPage(self._files_page()); self.addPage(self._contacts_page()); self.addPage(self._email_page()); self.addPage(self._preview_page())
 
     def _files_page(self) -> QWizardPage:
-        page = QWizardPage(); page.setTitle('1. CV et lettre existants'); self.cv_file = QLineEdit(); self.letter_file = QLineEdit()
+        page = QWizardPage(); page.setTitle('1. CV à joindre'); page.setSubTitle('Le CV sera la seule pièce jointe. La lettre de motivation sera écrite directement dans le mail.'); self.cv_file = QLineEdit()
         form = QFormLayout(page)
-        for label, target in (('CV (PDF ou DOCX)', self.cv_file), ('Lettre (PDF ou DOCX)', self.letter_file)):
-            row = QWidget(); layout = QHBoxLayout(row); layout.setContentsMargins(0, 0, 0, 0); browse = QPushButton('Parcourir'); browse.clicked.connect(lambda _, input_=target: input_.setText(select_file(page, 'Sélectionner un document', 'Documents (*.pdf *.docx)'))); layout.addWidget(target); layout.addWidget(browse); form.addRow(label, row)
+        row = QWidget(); layout = QHBoxLayout(row); layout.setContentsMargins(0, 0, 0, 0)
+        browse = QPushButton('Parcourir'); browse.clicked.connect(lambda: self.cv_file.setText(select_file(page, 'Sélectionner le CV', 'CV (*.pdf *.docx)')))
+        layout.addWidget(self.cv_file); layout.addWidget(browse); form.addRow('CV (PDF ou DOCX)', row)
         return page
 
     def _contacts_page(self) -> QWizardPage:
-        page = QWizardPage(); page.setTitle('2. Base de contacts Excel'); self.contact_file = QLineEdit(); self.contact_report = QPlainTextEdit(); self.contact_report.setReadOnly(True)
-        browse = QPushButton('Importer .xlsx ou .csv'); browse.clicked.connect(self._load_contacts)
-        layout = QVBoxLayout(page); layout.addWidget(self.contact_file); layout.addWidget(browse); layout.addWidget(self.contact_report); return page
+        page = QWizardPage(); page.setTitle('2. Destinataire'); page.setSubTitle('Saisissez l’adresse d’une entreprise ou importez une liste Excel/CSV.')
+        self.recipient_email = QLineEdit(); self.recipient_company = QLineEdit(); self.recipient_name = QLineEdit(); self.recipient_position = QLineEdit()
+        self.contact_file = QLineEdit(); self.contact_report = QPlainTextEdit(); self.contact_report.setReadOnly(True); self.contact_report.setMaximumHeight(120)
+        form = QFormLayout(); form.addRow('E-mail de l’entreprise', self.recipient_email); form.addRow('Nom de l’entreprise', self.recipient_company); form.addRow('Nom du contact', self.recipient_name); form.addRow('Poste visé', self.recipient_position)
+        browse = QPushButton('Importer une liste .xlsx ou .csv'); browse.clicked.connect(self._load_contacts)
+        layout = QVBoxLayout(page); layout.addLayout(form); layout.addWidget(QLabel('Ou importer plusieurs destinataires :')); layout.addWidget(self.contact_file); layout.addWidget(browse); layout.addWidget(self.contact_report); return page
 
     def _email_page(self) -> QWizardPage:
-        page = QWizardPage(); page.setTitle('3. Configurer les emails'); self.campaign_subject = QLineEdit('Candidature spontanée'); self.sender_name = QLineEdit(); self.campaign_body = QPlainTextEdit('Bonjour {{contact_name}},\n\nJe vous transmets ma candidature pour une opportunité au sein de {{company}}.\n\nCordialement,\n{{sender_name}}')
+        page = QWizardPage(); page.setTitle('3. Écrire le mail et la lettre de motivation'); page.setSubTitle('Ce texte sera envoyé dans le corps du mail, sans lettre PDF jointe.'); self.campaign_subject = QLineEdit('Candidature spontanée'); self.sender_name = QLineEdit(); self.campaign_body = QPlainTextEdit('Bonjour {{contact_name}},\n\nJe vous adresse ma candidature pour une opportunité au sein de {{company}}.\n\nÉcrivez ici votre lettre de motivation.\n\nCordialement,\n{{sender_name}}')
         form = QFormLayout(); form.addRow('Nom expéditeur', self.sender_name); form.addRow('Objet', self.campaign_subject)
-        layout = QVBoxLayout(page); layout.addLayout(form); layout.addWidget(QLabel('Variables : {{company}}, {{contact_name}}, {{position}}')); layout.addWidget(self.campaign_body); return page
+        layout = QVBoxLayout(page); layout.addLayout(form); layout.addWidget(QLabel('Lettre de motivation / message du mail')); layout.addWidget(QLabel('Variables disponibles : {{company}}, {{contact_name}}, {{position}}')); layout.addWidget(self.campaign_body); return page
 
     def _preview_page(self) -> QWizardPage:
-        page = QWizardPage(); page.setTitle('4. Prévisualisation'); self.campaign_preview = QPlainTextEdit(); self.campaign_preview.setReadOnly(True); QVBoxLayout(page).addWidget(self.campaign_preview); return page
+        page = QWizardPage(); page.setTitle('4. Prévisualisation et envoi'); page.setSubTitle('Vérifiez le destinataire, le message et le CV, puis cliquez sur « Envoyer le mail ».'); self.campaign_preview = QPlainTextEdit(); self.campaign_preview.setReadOnly(True); QVBoxLayout(page).addWidget(self.campaign_preview); return page
 
     def _load_contacts(self) -> None:
         path = select_file(self, 'Importer les contacts', 'Contacts (*.xlsx *.xlsm *.csv)')
         if not path: return
-        self.contact_file.setText(path); result = import_contacts(path); self.contacts = result.contacts
+        self.contact_file.setText(path); result = import_contacts(path); self.imported_contacts = result.contacts
         self.contact_report.setPlainText(f'{len(result.contacts)} email(s) valide(s)\n{result.duplicates} doublon(s) supprimé(s)\n\n' + '\n'.join(result.errors[:50]))
 
     def validateCurrentPage(self) -> bool:
-        if self.currentId() == 0 and (not self.cv_file.text() or not self.letter_file.text()): QMessageBox.warning(self, 'Documents requis', 'Ajoutez le CV et la lettre.'); return False
-        if self.currentId() == 1 and not self.contacts: QMessageBox.warning(self, 'Contacts requis', 'Importez au moins un contact valide.'); return False
+        if self.currentId() == 0 and not self.cv_file.text(): QMessageBox.warning(self, 'CV requis', 'Ajoutez le CV à joindre au mail.'); return False
+        if self.currentId() == 1:
+            email = self.recipient_email.text().strip().lower()
+            if email and ('@' not in email or '.' not in email.rsplit('@', 1)[-1]): QMessageBox.warning(self, 'E-mail invalide', 'Vérifiez l’adresse e-mail de l’entreprise.'); return False
+            manual = [Contact(email, self.recipient_company.text().strip(), self.recipient_name.text().strip(), self.recipient_position.text().strip())] if email else []
+            unique_contacts = {contact.email.lower(): contact for contact in [*manual, *self.imported_contacts]}
+            self.contacts = list(unique_contacts.values())
+            if not self.contacts: QMessageBox.warning(self, 'Destinataire requis', 'Saisissez l’e-mail d’une entreprise ou importez une liste de contacts.'); return False
         if self.currentId() == 2 and (not self.campaign_subject.text().strip() or not self.campaign_body.toPlainText().strip()): QMessageBox.warning(self, 'Email incomplet', 'Ajoutez un objet et un message.'); return False
         return super().validateCurrentPage()
 
@@ -282,12 +307,12 @@ class CampaignWizard(QWizard):
         if page_id == 3:
             examples = []
             for contact in self.contacts[:5]: examples.append(f'À : {contact.email}\nObjet : {personalise(self.campaign_subject.text(), contact)}\n{personalise(self.campaign_body.toPlainText(), contact).replace("{{sender_name}}", self.sender_name.text())}')
-            self.campaign_preview.setPlainText(f'Destinataires : {len(self.contacts)}\nPièces jointes : {self.cv_file.text()}, {self.letter_file.text()}\n\n' + '\n\n---\n\n'.join(examples))
+            self.campaign_preview.setPlainText(f'Destinataires : {len(self.contacts)}\nCV joint : {self.cv_file.text()}\nLettre de motivation : intégrée au corps du mail\n\n' + '\n\n---\n\n'.join(examples))
 
     def accept(self) -> None:
         if QMessageBox.question(self, 'Confirmer la campagne', f'Envoyer {len(self.contacts)} email(s) ?') != QMessageBox.StandardButton.Yes: return
         progress = QProgressDialog('Envoi en cours…', 'Annuler', 0, len(self.contacts), self); progress.setWindowModality(Qt.WindowModality.WindowModal)
-        service, report, attachments = SMTPEmailService(), [], [self.cv_file.text(), self.letter_file.text()]
+        service, report, attachments = SMTPEmailService(), [], [self.cv_file.text()]
         for index, contact in enumerate(self.contacts, 1):
             if progress.wasCanceled(): report.append('Campagne interrompue.'); break
             subject = personalise(self.campaign_subject.text(), contact); body = personalise(self.campaign_body.toPlainText(), contact).replace('{{sender_name}}', self.sender_name.text())
@@ -303,32 +328,37 @@ class CampaignWizard(QWizard):
 class MainWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__(); self.repository = CVRepository(); self.setWindowTitle('CVzzer — Candidature Assistant'); self.resize(900, 620)
-        self.workflow: QWizard | None = None
+        self.workflow: QWizard | None = None; self.workflow_page: QWidget | None = None
         self.pages = QStackedWidget(); self.home = QWidget(); layout = QVBoxLayout(self.home); layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         title = QLabel('CANDIDATURE ASSISTANT'); title.setAlignment(Qt.AlignmentFlag.AlignCenter); title.setObjectName('title')
         subtitle = QLabel('Choisissez votre workflow'); subtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(title); layout.addWidget(subtitle)
         cards = QHBoxLayout()
-        for text, callback in [('📄  AVEC OFFRE\n\nAdapter mon CV à une offre et préparer une candidature ciblée.', self.open_offer), ('📧  SANS OFFRE\n\nEnvoyer un CV et une lettre à une base de contacts.', self.open_campaign)]:
+        for text, callback in [('📄  AVEC OFFRE\n\nAdapter mon CV à une offre et préparer une candidature ciblée.', self.open_offer), ('📧  SANS OFFRE\n\nJoindre un CV et écrire la lettre directement dans le mail.', self.open_campaign)]:
             button = QPushButton(text); button.setObjectName('workflowCard'); button.setMinimumSize(320, 190); button.clicked.connect(callback); cards.addWidget(button)
         layout.addLayout(cards); self.pages.addWidget(self.home); self.setCentralWidget(self.pages); self.statusBar().showMessage('SQLite local — aucun compte requis')
 
-    def _show_workflow(self, wizard_type: type[QWizard]) -> None:
-        if self.workflow is not None:
-            self.pages.removeWidget(self.workflow); self.workflow.deleteLater()
-        self.workflow = wizard_type(self.repository, self.pages)
+    def _show_workflow(self, wizard_type: type[QWizard], title: str) -> None:
+        if self.workflow_page is not None:
+            self.pages.removeWidget(self.workflow_page); self.workflow_page.deleteLater()
+        self.workflow_page = QWidget(); page_layout = QVBoxLayout(self.workflow_page)
+        header = QHBoxLayout(); home_button = QPushButton('← Retour à l’accueil'); home_button.setObjectName('homeButton'); home_button.clicked.connect(self.show_home)
+        heading = QLabel(title); heading.setObjectName('workflowTitle')
+        header.addWidget(home_button); header.addWidget(heading); header.addStretch()
+        self.workflow = wizard_type(self.repository, self.workflow_page)
         self.workflow.accepted.connect(self.show_home)
         self.workflow.rejected.connect(self.show_home)
-        self.pages.addWidget(self.workflow); self.pages.setCurrentWidget(self.workflow)
+        page_layout.addLayout(header); page_layout.addWidget(self.workflow)
+        self.pages.addWidget(self.workflow_page); self.pages.setCurrentWidget(self.workflow_page)
 
     def show_home(self) -> None:
-        workflow, self.workflow = self.workflow, None
+        workflow_page, self.workflow_page, self.workflow = self.workflow_page, None, None
         self.pages.setCurrentWidget(self.home)
-        if workflow is not None:
-            self.pages.removeWidget(workflow); workflow.deleteLater()
+        if workflow_page is not None:
+            self.pages.removeWidget(workflow_page); workflow_page.deleteLater()
 
-    def open_offer(self) -> None: self._show_workflow(OfferWizard)
-    def open_campaign(self) -> None: self._show_workflow(CampaignWizard)
+    def open_offer(self) -> None: self._show_workflow(OfferWizard, 'Candidature avec offre')
+    def open_campaign(self) -> None: self._show_workflow(CampaignWizard, 'Candidature sans offre')
     def closeEvent(self, event) -> None: self.repository.close(); event.accept()
 
 

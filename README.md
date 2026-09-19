@@ -5,7 +5,7 @@ Application PyQt6 locale de gestion et d’envoi de candidatures. Cette branche 
 ## Fonctionnalités
 
 - workflow guidé à partir d’une offre : profil SQLite, analyse, CV adapté, lettre, vérification et envoi ;
-- workflow de campagne : CV + lettre, import Excel/CSV, validation des emails, personnalisation et envoi progressif ;
+- workflow sans offre : CV joint, lettre rédigée dans le mail, destinataire manuel ou import Excel/CSV, puis envoi progressif ;
 - stockage local SQLite, sans compte ni Supabase ;
 - prévention des doublons et journal des états `Sending`, `Sent`, `Failed`, `Skipped` ;
 - export LaTeX et PDF lorsque `pdflatex` est installé ;

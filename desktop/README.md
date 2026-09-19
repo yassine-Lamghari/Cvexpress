@@ -28,9 +28,11 @@ Un assistant guide le candidat à travers : profil SQLite → offre collée ou i
 
 Le CV et la lettre sont générés exclusivement depuis le profil sauvegardé. Les compétences non présentes dans le profil ne sont jamais ajoutées.
 
-### Candidature vers une base de contacts
+### Candidature sans offre
 
-Un second assistant accepte un CV et une lettre existants (PDF ou DOCX), puis un fichier `.xlsx`, `.xlsm` ou `.csv`. Il détecte la colonne email, contrôle les adresses, retire les doublons, prévisualise les cinq premiers messages et envoie les emails un à un.
+Le second assistant joint uniquement le CV (PDF ou DOCX). La lettre de motivation est rédigée directement dans le corps du mail et n’est pas demandée comme fichier PDF.
+
+Le destinataire peut être saisi directement avec l’e-mail et le nom de l’entreprise, ou provenir d’un fichier `.xlsx`, `.xlsm` ou `.csv`. L’application contrôle les adresses, retire les doublons, prévisualise les cinq premiers messages et envoie les e-mails un à un.
 
 Les variables `{{company}}`, `{{contact_name}}` et `{{position}}` sont disponibles dans l’objet et le corps du message.
 
