@@ -121,9 +121,11 @@ class ProfileForm(QWidget):
 
 
 class OfferWizard(QWizard):
-    def __init__(self, repository: CVRepository) -> None:
-        super().__init__(); self.repository = repository
+    def __init__(self, repository: CVRepository, parent: QWidget | None = None) -> None:
+        super().__init__(parent); self.repository = repository
+        self.setWindowFlags(Qt.WindowType.Widget)
         self.setWindowTitle('Candidature à partir d’une offre')
+        self.setButtonText(QWizard.WizardButton.CancelButton, 'Retour à l’accueil')
         self.profile = ProfileForm(); self.offer = QPlainTextEdit(); self.analysis_view = QPlainTextEdit(); self.cv_view = QPlainTextEdit(); self.letter_view = QPlainTextEdit()
         self.analysis_view.setReadOnly(True); self.cv_view.setReadOnly(True); self.letter_view.setReadOnly(True)
         self.cv_attachment = ''; self.letter_attachment = ''
@@ -237,9 +239,11 @@ class OfferWizard(QWizard):
 
 
 class CampaignWizard(QWizard):
-    def __init__(self, repository: CVRepository) -> None:
-        super().__init__(); self.repository = repository; self.contacts: list[Contact] = []
+    def __init__(self, repository: CVRepository, parent: QWidget | None = None) -> None:
+        super().__init__(parent); self.repository = repository; self.contacts: list[Contact] = []
+        self.setWindowFlags(Qt.WindowType.Widget)
         self.setWindowTitle('Candidature vers une base de contacts')
+        self.setButtonText(QWizard.WizardButton.CancelButton, 'Retour à l’accueil')
         self.addPage(self._files_page()); self.addPage(self._contacts_page()); self.addPage(self._email_page()); self.addPage(self._preview_page())
 
     def _files_page(self) -> QWizardPage:
@@ -299,17 +303,32 @@ class CampaignWizard(QWizard):
 class MainWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__(); self.repository = CVRepository(); self.setWindowTitle('CVzzer — Candidature Assistant'); self.resize(900, 620)
-        home = QWidget(); layout = QVBoxLayout(home); layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.workflow: QWizard | None = None
+        self.pages = QStackedWidget(); self.home = QWidget(); layout = QVBoxLayout(self.home); layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         title = QLabel('CANDIDATURE ASSISTANT'); title.setAlignment(Qt.AlignmentFlag.AlignCenter); title.setObjectName('title')
         subtitle = QLabel('Choisissez votre workflow'); subtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(title); layout.addWidget(subtitle)
         cards = QHBoxLayout()
         for text, callback in [('📄  AVEC OFFRE\n\nAdapter mon CV à une offre et préparer une candidature ciblée.', self.open_offer), ('📧  SANS OFFRE\n\nEnvoyer un CV et une lettre à une base de contacts.', self.open_campaign)]:
             button = QPushButton(text); button.setObjectName('workflowCard'); button.setMinimumSize(320, 190); button.clicked.connect(callback); cards.addWidget(button)
-        layout.addLayout(cards); self.setCentralWidget(home); self.statusBar().showMessage('SQLite local — aucun compte requis')
+        layout.addLayout(cards); self.pages.addWidget(self.home); self.setCentralWidget(self.pages); self.statusBar().showMessage('SQLite local — aucun compte requis')
 
-    def open_offer(self) -> None: OfferWizard(self.repository).exec()
-    def open_campaign(self) -> None: CampaignWizard(self.repository).exec()
+    def _show_workflow(self, wizard_type: type[QWizard]) -> None:
+        if self.workflow is not None:
+            self.pages.removeWidget(self.workflow); self.workflow.deleteLater()
+        self.workflow = wizard_type(self.repository, self.pages)
+        self.workflow.accepted.connect(self.show_home)
+        self.workflow.rejected.connect(self.show_home)
+        self.pages.addWidget(self.workflow); self.pages.setCurrentWidget(self.workflow)
+
+    def show_home(self) -> None:
+        workflow, self.workflow = self.workflow, None
+        self.pages.setCurrentWidget(self.home)
+        if workflow is not None:
+            self.pages.removeWidget(workflow); workflow.deleteLater()
+
+    def open_offer(self) -> None: self._show_workflow(OfferWizard)
+    def open_campaign(self) -> None: self._show_workflow(CampaignWizard)
     def closeEvent(self, event) -> None: self.repository.close(); event.accept()
 
 
