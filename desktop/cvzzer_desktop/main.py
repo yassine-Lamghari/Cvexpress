@@ -28,6 +28,67 @@ TEXT_FIELDS = {
 }
 
 
+APP_STYLESHEET = """
+QMainWindow, QWidget, QWizard, QWizardPage {
+    background-color: #0F172A;
+    color: #E2E8F0;
+    font-size: 14px;
+}
+QLabel {
+    background-color: transparent;
+    color: #E2E8F0;
+}
+QLabel#title {
+    color: #F8FAFC;
+    font-size: 30px;
+    font-weight: 700;
+}
+QPushButton {
+    background-color: #F8FAFC;
+    border: 1px solid #94A3B8;
+    border-radius: 10px;
+    color: #0F172A;
+    padding: 12px;
+}
+QPushButton:hover {
+    background-color: #DBEAFE;
+    border-color: #38BDF8;
+}
+QPushButton:pressed {
+    background-color: #BFDBFE;
+}
+QPushButton:disabled {
+    background-color: #CBD5E1;
+    color: #64748B;
+}
+QPushButton#workflowCard {
+    font-size: 16px;
+    font-weight: 600;
+}
+QLineEdit, QPlainTextEdit {
+    background-color: #FFFFFF;
+    border: 1px solid #94A3B8;
+    border-radius: 6px;
+    color: #0F172A;
+    padding: 6px;
+    selection-background-color: #2563EB;
+    selection-color: #FFFFFF;
+}
+QScrollArea, QScrollArea > QWidget > QWidget {
+    background-color: #0F172A;
+}
+QStatusBar {
+    background-color: #111827;
+    color: #CBD5E1;
+}
+QToolTip {
+    background-color: #F8FAFC;
+    border: 1px solid #94A3B8;
+    color: #0F172A;
+}
+"""
+
+
 def select_file(parent: QWidget, title: str, filters: str) -> str:
     return QFileDialog.getOpenFileName(parent, title, '', filters)[0]
 
@@ -243,9 +304,9 @@ class MainWindow(QMainWindow):
         subtitle = QLabel('Choisissez votre workflow'); subtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(title); layout.addWidget(subtitle)
         cards = QHBoxLayout()
-        for text, callback in [('📄  AVEC OFFRE\n\nAdapter mon CV à une offre et préparer une candidature ciblée.', self.open_offer), ('📧  SANS OFFRE\n\nEnvoyer un CV et une lettre à une base de contacts.', self.open_campaign)]: button = QPushButton(text); button.setMinimumSize(320, 190); button.clicked.connect(callback); cards.addWidget(button)
+        for text, callback in [('📄  AVEC OFFRE\n\nAdapter mon CV à une offre et préparer une candidature ciblée.', self.open_offer), ('📧  SANS OFFRE\n\nEnvoyer un CV et une lettre à une base de contacts.', self.open_campaign)]:
+            button = QPushButton(text); button.setObjectName('workflowCard'); button.setMinimumSize(320, 190); button.clicked.connect(callback); cards.addWidget(button)
         layout.addLayout(cards); self.setCentralWidget(home); self.statusBar().showMessage('SQLite local — aucun compte requis')
-        self.setStyleSheet('QWidget { font-size: 14px; } #title { font-size: 30px; font-weight: 700; } QPushButton { padding: 12px; border: 1px solid #CBD5E1; border-radius: 10px; background: #F8FAFC; } QPushButton:hover { background: #E0F2FE; border-color: #0284C7; }')
 
     def open_offer(self) -> None: OfferWizard(self.repository).exec()
     def open_campaign(self) -> None: CampaignWizard(self.repository).exec()
@@ -253,4 +314,4 @@ class MainWindow(QMainWindow):
 
 
 def run() -> None:
-    app = QApplication(sys.argv); app.setApplicationName('CVzzer Desktop'); window = MainWindow(); window.show(); sys.exit(app.exec())
+    app = QApplication(sys.argv); app.setApplicationName('CVzzer Desktop'); app.setStyle('Fusion'); app.setStyleSheet(APP_STYLESHEET); window = MainWindow(); window.show(); sys.exit(app.exec())
