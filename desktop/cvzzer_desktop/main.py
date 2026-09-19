@@ -16,6 +16,7 @@ from .latex import render_latex
 from .models import Contact
 from .services.application_service import adapt_profile
 from .services.contact_import_service import import_contacts
+from .services.document_service import cover_letter_latex, export_pdf
 from .services.email_service import SMTPEmailService
 from .services.template_service import personalise
 
@@ -89,8 +90,10 @@ class OfferWizard(QWizard):
     def _documents_page(self) -> QWizardPage:
         page = QWizardPage(); page.setTitle('4. CV adapté et lettre')
         cv_export = QPushButton('Exporter le CV adapté (.tex)'); cv_export.clicked.connect(self._export_cv)
+        cv_pdf_export = QPushButton('Exporter le CV adapté (.pdf)'); cv_pdf_export.clicked.connect(self._export_cv_pdf)
         letter_export = QPushButton('Exporter la lettre (.txt)'); letter_export.clicked.connect(self._export_letter)
-        layout = QVBoxLayout(page); layout.addWidget(QLabel('CV adapté')) ; layout.addWidget(self.cv_view); layout.addWidget(cv_export); layout.addWidget(QLabel('Lettre de motivation')); layout.addWidget(self.letter_view); layout.addWidget(letter_export)
+        letter_pdf_export = QPushButton('Exporter la lettre (.pdf)'); letter_pdf_export.clicked.connect(self._export_letter_pdf)
+        layout = QVBoxLayout(page); layout.addWidget(QLabel('CV adapté')) ; layout.addWidget(self.cv_view); layout.addWidget(cv_export); layout.addWidget(cv_pdf_export); layout.addWidget(QLabel('Lettre de motivation')); layout.addWidget(self.letter_view); layout.addWidget(letter_export); layout.addWidget(letter_pdf_export)
         return page
 
     def _email_page(self) -> QWizardPage:
@@ -113,6 +116,22 @@ class OfferWizard(QWizard):
     def _export_letter(self) -> None:
         path = save_file(self, 'Exporter la lettre', 'lettre-motivation.txt', self.letter_view.toPlainText(), 'Texte (*.txt)')
         if path: self.letter_attachment = path; self._set_attachments()
+
+    def _export_cv_pdf(self) -> None:
+        path = QFileDialog.getSaveFileName(self, 'Exporter le CV PDF', 'cv-adapte.pdf', 'PDF (*.pdf)')[0]
+        if not path: return
+        try:
+            export_pdf(self.cv_view.toPlainText(), path); self.cv_attachment = path; self._set_attachments()
+        except RuntimeError as error:
+            QMessageBox.warning(self, 'Export PDF impossible', str(error))
+
+    def _export_letter_pdf(self) -> None:
+        path = QFileDialog.getSaveFileName(self, 'Exporter la lettre PDF', 'lettre-motivation.pdf', 'PDF (*.pdf)')[0]
+        if not path: return
+        try:
+            export_pdf(cover_letter_latex(self.letter_view.toPlainText()), path); self.letter_attachment = path; self._set_attachments()
+        except RuntimeError as error:
+            QMessageBox.warning(self, 'Export PDF impossible', str(error))
 
     def _add_attachment(self) -> None:
         files, _ = QFileDialog.getOpenFileNames(self, 'Ajouter des pièces jointes')
