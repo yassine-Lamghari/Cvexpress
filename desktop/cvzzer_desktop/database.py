@@ -41,6 +41,27 @@ class CVRepository:
             )
             ''',
         )
+        self._connection.execute(
+            '''
+            CREATE TABLE IF NOT EXISTS candidate_profiles (
+                id INTEGER PRIMARY KEY CHECK (id = 1),
+                payload TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+            ''',
+        )
+        self._connection.execute(
+            '''
+            CREATE TABLE IF NOT EXISTS email_deliveries (
+                fingerprint TEXT NOT NULL,
+                recipient TEXT NOT NULL,
+                status TEXT NOT NULL,
+                detail TEXT NOT NULL DEFAULT '',
+                sent_at TEXT NOT NULL,
+                PRIMARY KEY (fingerprint, recipient)
+            )
+            ''',
+        )
         self._connection.commit()
 
     def list_documents(self) -> list[SavedDocument]:
@@ -77,6 +98,41 @@ class CVRepository:
 
     def delete(self, document_id: int) -> None:
         self._connection.execute('DELETE FROM cv_documents WHERE id = ?', (document_id,))
+        self._connection.commit()
+
+    def save_profile(self, payload: dict[str, Any]) -> None:
+        now = datetime.now(timezone.utc).isoformat(timespec='seconds')
+        self._connection.execute(
+            '''
+            INSERT INTO candidate_profiles (id, payload, updated_at) VALUES (1, ?, ?)
+            ON CONFLICT(id) DO UPDATE SET payload = excluded.payload, updated_at = excluded.updated_at
+            ''',
+            (json.dumps(payload, ensure_ascii=False), now),
+        )
+        self._connection.commit()
+
+    def load_profile(self) -> dict[str, Any]:
+        row = self._connection.execute('SELECT payload FROM candidate_profiles WHERE id = 1').fetchone()
+        return json.loads(row['payload']) if row else {}
+
+    def delivery_exists(self, fingerprint: str, recipient: str) -> bool:
+        row = self._connection.execute(
+            'SELECT 1 FROM email_deliveries WHERE fingerprint = ? AND recipient = ? AND status = ?',
+            (fingerprint, recipient.lower(), 'Sent'),
+        ).fetchone()
+        return row is not None
+
+    def record_delivery(self, fingerprint: str, recipient: str, status: str, detail: str = '') -> None:
+        now = datetime.now(timezone.utc).isoformat(timespec='seconds')
+        self._connection.execute(
+            '''
+            INSERT INTO email_deliveries (fingerprint, recipient, status, detail, sent_at)
+            VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT(fingerprint, recipient) DO UPDATE SET
+                status = excluded.status, detail = excluded.detail, sent_at = excluded.sent_at
+            ''',
+            (fingerprint, recipient.lower(), status, detail[:1000], now),
+        )
         self._connection.commit()
 
     def close(self) -> None:

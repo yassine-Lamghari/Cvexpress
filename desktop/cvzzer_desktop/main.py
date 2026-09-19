@@ -1,254 +1,237 @@
 from __future__ import annotations
 
-import shutil
-import subprocess
+import hashlib
 import sys
-import tempfile
 from pathlib import Path
-from typing import Any
 
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QAction
 from PyQt6.QtWidgets import (
-    QApplication,
-    QFileDialog,
-    QFormLayout,
-    QLabel,
-    QLineEdit,
-    QListWidget,
-    QListWidgetItem,
-    QMainWindow,
-    QMessageBox,
-    QPlainTextEdit,
-    QPushButton,
-    QScrollArea,
-    QSplitter,
-    QTabWidget,
-    QVBoxLayout,
-    QWidget,
+    QApplication, QFileDialog, QFormLayout, QHBoxLayout, QLabel, QLineEdit,
+    QMainWindow, QMessageBox, QPlainTextEdit, QProgressDialog, QPushButton,
+    QScrollArea, QStackedWidget, QVBoxLayout, QWidget, QWizard, QWizardPage,
 )
 
 from .database import CVRepository
 from .latex import render_latex
+from .models import Contact
+from .services.application_service import adapt_profile
+from .services.contact_import_service import import_contacts
+from .services.email_service import SMTPEmailService
+from .services.template_service import personalise
 
 
 TEXT_FIELDS = {
-    'resume': 'Profil / résumé',
-    'skills': 'Compétences',
-    'experience': 'Expériences',
-    'education': 'Formation',
-    'job_offer': 'Offre visée',
+    'summary': 'Résumé professionnel', 'education': 'Parcours académique',
+    'experience': 'Expériences', 'internships': 'Stages', 'projects': 'Projets',
+    'skills': 'Compétences techniques', 'certifications': 'Certifications', 'languages': 'Langues',
 }
 
 
-class CVEditor(QWidget):
+def select_file(parent: QWidget, title: str, filters: str) -> str:
+    return QFileDialog.getOpenFileName(parent, title, '', filters)[0]
+
+
+def save_file(parent: QWidget, title: str, filename: str, content: str, filters: str) -> str:
+    path = QFileDialog.getSaveFileName(parent, title, filename, filters)[0]
+    if path:
+        Path(path).write_text(content, encoding='utf-8')
+    return path
+
+
+class ProfileForm(QWidget):
     def __init__(self) -> None:
         super().__init__()
-        self.name = QLineEdit()
-        self.full_name = QLineEdit()
-        self.title = QLineEdit()
-        self.email = QLineEdit()
-        self.phone = QLineEdit()
-        self.location = QLineEdit()
-        self.linkedin = QLineEdit()
-        self.text_fields = {key: QPlainTextEdit() for key in TEXT_FIELDS}
-
+        self.lines = {field: QLineEdit() for field in ('full_name', 'title', 'email', 'phone', 'location', 'linkedin')}
+        self.areas = {field: QPlainTextEdit() for field in TEXT_FIELDS}
+        labels = {'full_name': 'Nom complet', 'title': 'Titre professionnel', 'email': 'E-mail', 'phone': 'Téléphone', 'location': 'Ville / pays', 'linkedin': 'LinkedIn / site'}
         form = QFormLayout()
-        form.addRow('Nom du document', self.name)
-        form.addRow('Nom complet', self.full_name)
-        form.addRow('Titre professionnel', self.title)
-        form.addRow('E-mail', self.email)
-        form.addRow('Téléphone', self.phone)
-        form.addRow('Ville / pays', self.location)
-        form.addRow('LinkedIn / site', self.linkedin)
+        for field, label in labels.items(): form.addRow(label, self.lines[field])
+        layout = QVBoxLayout(self); layout.addLayout(form)
+        for field, label in TEXT_FIELDS.items():
+            layout.addWidget(QLabel(label)); self.areas[field].setMinimumHeight(75); layout.addWidget(self.areas[field])
 
-        layout = QVBoxLayout(self)
-        layout.addLayout(form)
-        for key, label in TEXT_FIELDS.items():
-            layout.addWidget(QLabel(label))
-            editor = self.text_fields[key]
-            editor.setPlaceholderText(f'Saisissez {label.lower()}…')
-            editor.setMinimumHeight(95)
-            layout.addWidget(editor)
+    def data(self) -> dict[str, str]:
+        return {**{key: item.text().strip() for key, item in self.lines.items()}, **{key: item.toPlainText().strip() for key, item in self.areas.items()}}
 
-    def payload(self) -> dict[str, Any]:
-        return {
-            'name': self.name.text(),
-            'full_name': self.full_name.text(),
-            'title': self.title.text(),
-            'email': self.email.text(),
-            'phone': self.phone.text(),
-            'location': self.location.text(),
-            'linkedin': self.linkedin.text(),
-            **{key: editor.toPlainText() for key, editor in self.text_fields.items()},
-        }
+    def load(self, values: dict[str, str]) -> None:
+        for key, item in self.lines.items(): item.setText(values.get(key, ''))
+        for key, item in self.areas.items(): item.setPlainText(values.get(key, ''))
 
-    def set_payload(self, payload: dict[str, Any]) -> None:
-        for key in ('name', 'full_name', 'title', 'email', 'phone', 'location', 'linkedin'):
-            getattr(self, key).setText(str(payload.get(key, '')))
-        for key, editor in self.text_fields.items():
-            editor.setPlainText(str(payload.get(key, '')))
 
-    def clear(self) -> None:
-        self.set_payload({})
+class OfferWizard(QWizard):
+    def __init__(self, repository: CVRepository) -> None:
+        super().__init__(); self.repository = repository
+        self.setWindowTitle('Candidature à partir d’une offre')
+        self.profile = ProfileForm(); self.offer = QPlainTextEdit(); self.analysis_view = QPlainTextEdit(); self.cv_view = QPlainTextEdit(); self.letter_view = QPlainTextEdit()
+        self.analysis_view.setReadOnly(True); self.cv_view.setReadOnly(True); self.letter_view.setReadOnly(True)
+        self.cv_attachment = ''; self.letter_attachment = ''
+        self.addPage(self._profile_page()); self.addPage(self._offer_page()); self.addPage(self._analysis_page()); self.addPage(self._documents_page()); self.addPage(self._email_page())
+
+    def _profile_page(self) -> QWizardPage:
+        page = QWizardPage(); page.setTitle('1. Profil candidat'); page.setSubTitle('Le profil sauvegardé est la seule source de vérité : aucune information ne sera inventée.')
+        page.registerField('profile_complete*', self.profile.lines['full_name'])
+        self.profile.load(self.repository.load_profile())
+        scroll = QScrollArea(); scroll.setWidgetResizable(True); scroll.setWidget(self.profile)
+        layout = QVBoxLayout(page); layout.addWidget(scroll)
+        return page
+
+    def _offer_page(self) -> QWizardPage:
+        page = QWizardPage(); page.setTitle('2. Offre à analyser')
+        self.offer.setPlaceholderText('Collez le texte de l’offre d’emploi ou du stage…')
+        button = QPushButton('Importer une offre texte')
+        button.clicked.connect(lambda: self._import_offer())
+        layout = QVBoxLayout(page); layout.addWidget(button); layout.addWidget(self.offer)
+        return page
+
+    def _analysis_page(self) -> QWizardPage:
+        page = QWizardPage(); page.setTitle('3. Analyse de l’offre'); layout = QVBoxLayout(page); layout.addWidget(self.analysis_view); return page
+
+    def _documents_page(self) -> QWizardPage:
+        page = QWizardPage(); page.setTitle('4. CV adapté et lettre')
+        cv_export = QPushButton('Exporter le CV adapté (.tex)'); cv_export.clicked.connect(self._export_cv)
+        letter_export = QPushButton('Exporter la lettre (.txt)'); letter_export.clicked.connect(self._export_letter)
+        layout = QVBoxLayout(page); layout.addWidget(QLabel('CV adapté')) ; layout.addWidget(self.cv_view); layout.addWidget(cv_export); layout.addWidget(QLabel('Lettre de motivation')); layout.addWidget(self.letter_view); layout.addWidget(letter_export)
+        return page
+
+    def _email_page(self) -> QWizardPage:
+        page = QWizardPage(); page.setTitle('5. Vérification avant envoi')
+        self.recipient = QLineEdit(); self.subject = QLineEdit(); self.message = QPlainTextEdit(); self.attachments = QLineEdit()
+        attach_button = QPushButton('Ajouter une pièce jointe')
+        attach_button.clicked.connect(self._add_attachment)
+        form = QFormLayout(); form.addRow('Destinataire', self.recipient); form.addRow('Objet', self.subject); form.addRow('Pièces jointes (;)', self.attachments)
+        layout = QVBoxLayout(page); layout.addLayout(form); layout.addWidget(attach_button); layout.addWidget(QLabel('Email')); layout.addWidget(self.message)
+        return page
+
+    def _import_offer(self) -> None:
+        path = select_file(self, 'Importer une offre', 'Texte (*.txt *.md);;Tous les fichiers (*)')
+        if path: self.offer.setPlainText(Path(path).read_text(encoding='utf-8', errors='replace'))
+
+    def _export_cv(self) -> None:
+        path = save_file(self, 'Exporter le CV', 'cv-adapte.tex', self.cv_view.toPlainText(), 'LaTeX (*.tex)')
+        if path: self.cv_attachment = path; self._set_attachments()
+
+    def _export_letter(self) -> None:
+        path = save_file(self, 'Exporter la lettre', 'lettre-motivation.txt', self.letter_view.toPlainText(), 'Texte (*.txt)')
+        if path: self.letter_attachment = path; self._set_attachments()
+
+    def _add_attachment(self) -> None:
+        files, _ = QFileDialog.getOpenFileNames(self, 'Ajouter des pièces jointes')
+        self.attachments.setText(';'.join([*filter(None, self.attachments.text().split(';')), *files]))
+
+    def _set_attachments(self) -> None:
+        if hasattr(self, 'attachments'): self.attachments.setText(';'.join(filter(None, (self.cv_attachment, self.letter_attachment))))
+
+    def validateCurrentPage(self) -> bool:
+        if self.currentId() == 0:
+            self.profile_data = self.profile.data()
+            if not self.profile_data['full_name'] or not (self.profile_data['summary'] or self.profile_data['experience']):
+                QMessageBox.warning(self, 'Profil incomplet', 'Indiquez votre nom et un résumé ou une expérience.'); return False
+            self.repository.save_profile(self.profile_data)
+        elif self.currentId() == 1:
+            self.offer_text = self.offer.toPlainText().strip()
+            if len(self.offer_text) < 30: QMessageBox.warning(self, 'Offre incomplète', 'Ajoutez au moins 30 caractères.'); return False
+        elif self.currentId() == 4:
+            if '@' not in self.recipient.text() or not self.subject.text().strip() or not self.message.toPlainText().strip():
+                QMessageBox.warning(self, 'Email incomplet', 'Complétez le destinataire, l’objet et le message.'); return False
+        return super().validateCurrentPage()
+
+    def initializePage(self, page_id: int) -> None:
+        if page_id == 2:
+            self.analysis, self.adapted, self.letter = adapt_profile(self.profile_data, self.offer_text)
+            self.analysis_view.setPlainText(f'Titre : {self.analysis.title}\nCompétences demandées : {", ".join(self.analysis.skills) or "Non détectées"}\nLangues : {", ".join(self.analysis.languages) or "Non détectées"}\nExpérience : {self.analysis.experience_level or "Non précisée"}\n\nMots-clés : {", ".join(self.analysis.keywords)}\n\nLes éléments non présents dans votre profil ne sont pas ajoutés au CV.')
+        elif page_id == 3:
+            self.cv_latex = render_latex(self.adapted); self.cv_view.setPlainText(self.cv_latex); self.letter_view.setPlainText(self.letter)
+        elif page_id == 4:
+            self.subject.setText(f'Candidature – {self.analysis.title}'); self.message.setPlainText(self.letter); self._set_attachments()
+
+    def accept(self) -> None:
+        recipient, subject, body = self.recipient.text().strip(), self.subject.text(), self.message.toPlainText()
+        attachments = list(filter(None, self.attachments.text().split(';')))
+        if QMessageBox.question(self, 'Confirmer', f'Envoyer à {recipient} ?') != QMessageBox.StandardButton.Yes: return
+        fingerprint = hashlib.sha256((subject + body + '|'.join(attachments)).encode()).hexdigest()
+        if self.repository.delivery_exists(fingerprint, recipient): QMessageBox.information(self, 'Envoi évité', 'Cette candidature a déjà été envoyée.'); return
+        try:
+            self.repository.record_delivery(fingerprint, recipient, 'Sending'); SMTPEmailService().send(recipient, subject, body, attachments); self.repository.record_delivery(fingerprint, recipient, 'Sent'); QMessageBox.information(self, 'Envoyé', 'Candidature envoyée avec succès.'); super().accept()
+        except Exception as error:
+            self.repository.record_delivery(fingerprint, recipient, 'Failed', str(error)); QMessageBox.critical(self, 'Erreur SMTP', str(error))
+
+
+class CampaignWizard(QWizard):
+    def __init__(self, repository: CVRepository) -> None:
+        super().__init__(); self.repository = repository; self.contacts: list[Contact] = []
+        self.setWindowTitle('Candidature vers une base de contacts')
+        self.addPage(self._files_page()); self.addPage(self._contacts_page()); self.addPage(self._email_page()); self.addPage(self._preview_page())
+
+    def _files_page(self) -> QWizardPage:
+        page = QWizardPage(); page.setTitle('1. CV et lettre existants'); self.cv_file = QLineEdit(); self.letter_file = QLineEdit()
+        form = QFormLayout(page)
+        for label, target in (('CV (PDF ou DOCX)', self.cv_file), ('Lettre (PDF ou DOCX)', self.letter_file)):
+            row = QWidget(); layout = QHBoxLayout(row); layout.setContentsMargins(0, 0, 0, 0); browse = QPushButton('Parcourir'); browse.clicked.connect(lambda _, input_=target: input_.setText(select_file(page, 'Sélectionner un document', 'Documents (*.pdf *.docx)'))); layout.addWidget(target); layout.addWidget(browse); form.addRow(label, row)
+        return page
+
+    def _contacts_page(self) -> QWizardPage:
+        page = QWizardPage(); page.setTitle('2. Base de contacts Excel'); self.contact_file = QLineEdit(); self.contact_report = QPlainTextEdit(); self.contact_report.setReadOnly(True)
+        browse = QPushButton('Importer .xlsx ou .csv'); browse.clicked.connect(self._load_contacts)
+        layout = QVBoxLayout(page); layout.addWidget(self.contact_file); layout.addWidget(browse); layout.addWidget(self.contact_report); return page
+
+    def _email_page(self) -> QWizardPage:
+        page = QWizardPage(); page.setTitle('3. Configurer les emails'); self.campaign_subject = QLineEdit('Candidature spontanée'); self.sender_name = QLineEdit(); self.campaign_body = QPlainTextEdit('Bonjour {{contact_name}},\n\nJe vous transmets ma candidature pour une opportunité au sein de {{company}}.\n\nCordialement,\n{{sender_name}}')
+        form = QFormLayout(); form.addRow('Nom expéditeur', self.sender_name); form.addRow('Objet', self.campaign_subject)
+        layout = QVBoxLayout(page); layout.addLayout(form); layout.addWidget(QLabel('Variables : {{company}}, {{contact_name}}, {{position}}')); layout.addWidget(self.campaign_body); return page
+
+    def _preview_page(self) -> QWizardPage:
+        page = QWizardPage(); page.setTitle('4. Prévisualisation'); self.campaign_preview = QPlainTextEdit(); self.campaign_preview.setReadOnly(True); QVBoxLayout(page).addWidget(self.campaign_preview); return page
+
+    def _load_contacts(self) -> None:
+        path = select_file(self, 'Importer les contacts', 'Contacts (*.xlsx *.xlsm *.csv)')
+        if not path: return
+        self.contact_file.setText(path); result = import_contacts(path); self.contacts = result.contacts
+        self.contact_report.setPlainText(f'{len(result.contacts)} email(s) valide(s)\n{result.duplicates} doublon(s) supprimé(s)\n\n' + '\n'.join(result.errors[:50]))
+
+    def validateCurrentPage(self) -> bool:
+        if self.currentId() == 0 and (not self.cv_file.text() or not self.letter_file.text()): QMessageBox.warning(self, 'Documents requis', 'Ajoutez le CV et la lettre.'); return False
+        if self.currentId() == 1 and not self.contacts: QMessageBox.warning(self, 'Contacts requis', 'Importez au moins un contact valide.'); return False
+        if self.currentId() == 2 and (not self.campaign_subject.text().strip() or not self.campaign_body.toPlainText().strip()): QMessageBox.warning(self, 'Email incomplet', 'Ajoutez un objet et un message.'); return False
+        return super().validateCurrentPage()
+
+    def initializePage(self, page_id: int) -> None:
+        if page_id == 3:
+            examples = []
+            for contact in self.contacts[:5]: examples.append(f'À : {contact.email}\nObjet : {personalise(self.campaign_subject.text(), contact)}\n{personalise(self.campaign_body.toPlainText(), contact).replace("{{sender_name}}", self.sender_name.text())}')
+            self.campaign_preview.setPlainText(f'Destinataires : {len(self.contacts)}\nPièces jointes : {self.cv_file.text()}, {self.letter_file.text()}\n\n' + '\n\n---\n\n'.join(examples))
+
+    def accept(self) -> None:
+        if QMessageBox.question(self, 'Confirmer la campagne', f'Envoyer {len(self.contacts)} email(s) ?') != QMessageBox.StandardButton.Yes: return
+        progress = QProgressDialog('Envoi en cours…', 'Annuler', 0, len(self.contacts), self); progress.setWindowModality(Qt.WindowModality.WindowModal)
+        service, report, attachments = SMTPEmailService(), [], [self.cv_file.text(), self.letter_file.text()]
+        for index, contact in enumerate(self.contacts, 1):
+            if progress.wasCanceled(): report.append('Campagne interrompue.'); break
+            subject = personalise(self.campaign_subject.text(), contact); body = personalise(self.campaign_body.toPlainText(), contact).replace('{{sender_name}}', self.sender_name.text())
+            fingerprint = hashlib.sha256((subject + body + '|'.join(attachments)).encode()).hexdigest()
+            if self.repository.delivery_exists(fingerprint, contact.email): report.append(f'{contact.email} — Skipped')
+            else:
+                try: self.repository.record_delivery(fingerprint, contact.email, 'Sending'); service.send(contact.email, subject, body, attachments); self.repository.record_delivery(fingerprint, contact.email, 'Sent'); report.append(f'{contact.email} — Sent')
+                except Exception as error: self.repository.record_delivery(fingerprint, contact.email, 'Failed', str(error)); report.append(f'{contact.email} — Failed : {error}')
+            progress.setValue(index); QApplication.processEvents()
+        QMessageBox.information(self, 'Rapport', '\n'.join(report[:100])); super().accept()
 
 
 class MainWindow(QMainWindow):
     def __init__(self) -> None:
-        super().__init__()
-        self.repository = CVRepository()
-        self.document_id: int | None = None
-        self.setWindowTitle('CVzzer Desktop')
-        self.resize(1250, 780)
+        super().__init__(); self.repository = CVRepository(); self.setWindowTitle('CVzzer — Candidature Assistant'); self.resize(900, 620)
+        home = QWidget(); layout = QVBoxLayout(home); layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        title = QLabel('CANDIDATURE ASSISTANT'); title.setAlignment(Qt.AlignmentFlag.AlignCenter); title.setObjectName('title')
+        subtitle = QLabel('Choisissez votre workflow'); subtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(title); layout.addWidget(subtitle)
+        cards = QHBoxLayout()
+        for text, callback in [('📄  AVEC OFFRE\n\nAdapter mon CV à une offre et préparer une candidature ciblée.', self.open_offer), ('📧  SANS OFFRE\n\nEnvoyer un CV et une lettre à une base de contacts.', self.open_campaign)]: button = QPushButton(text); button.setMinimumSize(320, 190); button.clicked.connect(callback); cards.addWidget(button)
+        layout.addLayout(cards); self.setCentralWidget(home); self.statusBar().showMessage('SQLite local — aucun compte requis')
+        self.setStyleSheet('QWidget { font-size: 14px; } #title { font-size: 30px; font-weight: 700; } QPushButton { padding: 12px; border: 1px solid #CBD5E1; border-radius: 10px; background: #F8FAFC; } QPushButton:hover { background: #E0F2FE; border-color: #0284C7; }')
 
-        self.editor = CVEditor()
-        self.preview = QPlainTextEdit()
-        self.preview.setReadOnly(True)
-        self.preview.setLineWrapMode(QPlainTextEdit.LineWrapMode.NoWrap)
-
-        self.documents = QListWidget()
-        self.documents.itemSelectionChanged.connect(self.load_selected_document)
-        self._create_actions()
-        self._create_layout()
-        self.refresh_documents()
-        self.new_document()
-        self.statusBar().showMessage('Prêt — stockage local SQLite')
-
-    def _create_actions(self) -> None:
-        toolbar = self.addToolBar('Actions')
-        for text, handler in (
-            ('Nouveau', self.new_document),
-            ('Sauvegarder', self.save_document),
-            ('Supprimer', self.delete_document),
-            ('Actualiser LaTeX', self.refresh_preview),
-            ('Exporter .tex', self.export_tex),
-            ('Exporter PDF', self.export_pdf),
-        ):
-            action = QAction(text, self)
-            action.triggered.connect(handler)
-            toolbar.addAction(action)
-
-    def _create_layout(self) -> None:
-        left = QWidget()
-        left_layout = QVBoxLayout(left)
-        left_layout.addWidget(QLabel('CV enregistrés'))
-        left_layout.addWidget(self.documents)
-        save_button = QPushButton('Sauvegarder le CV')
-        save_button.clicked.connect(self.save_document)
-        left_layout.addWidget(save_button)
-
-        editor_container = QScrollArea()
-        editor_container.setWidgetResizable(True)
-        editor_container.setWidget(self.editor)
-
-        tabs = QTabWidget()
-        tabs.addTab(editor_container, 'Édition')
-        tabs.addTab(self.preview, 'Aperçu LaTeX')
-
-        splitter = QSplitter(Qt.Orientation.Horizontal)
-        splitter.addWidget(left)
-        splitter.addWidget(tabs)
-        splitter.setSizes([260, 990])
-        self.setCentralWidget(splitter)
-
-    def refresh_documents(self, selected_id: int | None = None) -> None:
-        self.documents.blockSignals(True)
-        self.documents.clear()
-        for document in self.repository.list_documents():
-            item = QListWidgetItem(f'{document.name}\n{document.updated_at[:16].replace("T", " ")}')
-            item.setData(Qt.ItemDataRole.UserRole, document.id)
-            self.documents.addItem(item)
-            if document.id == selected_id:
-                self.documents.setCurrentItem(item)
-        self.documents.blockSignals(False)
-
-    def new_document(self) -> None:
-        self.document_id = None
-        self.documents.clearSelection()
-        self.editor.clear()
-        self.editor.name.setText('Nouveau CV')
-        self.refresh_preview()
-        self.statusBar().showMessage('Nouveau CV local')
-
-    def load_selected_document(self) -> None:
-        item = self.documents.currentItem()
-        if item is None:
-            return
-        document_id = item.data(Qt.ItemDataRole.UserRole)
-        payload = self.repository.load(int(document_id))
-        if payload is None:
-            return
-        self.document_id = int(document_id)
-        self.editor.set_payload(payload)
-        self.refresh_preview()
-        self.statusBar().showMessage('CV chargé depuis SQLite')
-
-    def save_document(self) -> None:
-        payload = self.editor.payload()
-        self.document_id = self.repository.save(self.document_id, payload['name'], payload)
-        self.refresh_documents(self.document_id)
-        self.statusBar().showMessage('CV sauvegardé localement', 4000)
-
-    def delete_document(self) -> None:
-        if self.document_id is None:
-            return
-        confirmation = QMessageBox.question(
-            self,
-            'Supprimer ce CV',
-            'Supprimer définitivement ce CV de la base SQLite locale ?',
-        )
-        if confirmation != QMessageBox.StandardButton.Yes:
-            return
-        self.repository.delete(self.document_id)
-        self.refresh_documents()
-        self.new_document()
-        self.statusBar().showMessage('CV supprimé', 4000)
-
-    def refresh_preview(self) -> None:
-        self.preview.setPlainText(render_latex(self.editor.payload()))
-
-    def export_tex(self) -> None:
-        self.refresh_preview()
-        filename, _ = QFileDialog.getSaveFileName(self, 'Exporter le fichier LaTeX', 'cv.tex', 'LaTeX (*.tex)')
-        if filename:
-            Path(filename).write_text(self.preview.toPlainText(), encoding='utf-8')
-            self.statusBar().showMessage('Fichier LaTeX exporté', 4000)
-
-    def export_pdf(self) -> None:
-        pdflatex = shutil.which('pdflatex')
-        if not pdflatex:
-            QMessageBox.warning(self, 'pdflatex introuvable', 'Installez une distribution LaTeX puis relancez l’export PDF.')
-            return
-        filename, _ = QFileDialog.getSaveFileName(self, 'Exporter le PDF', 'cv.pdf', 'PDF (*.pdf)')
-        if not filename:
-            return
-        self.refresh_preview()
-        with tempfile.TemporaryDirectory(prefix='cvzzer_') as directory:
-            work_dir = Path(directory)
-            tex_path = work_dir / 'cv.tex'
-            tex_path.write_text(self.preview.toPlainText(), encoding='utf-8')
-            result = subprocess.run(
-                [pdflatex, '-interaction=nonstopmode', '-halt-on-error', tex_path.name],
-                cwd=work_dir,
-                capture_output=True,
-                text=True,
-                check=False,
-            )
-            pdf_path = work_dir / 'cv.pdf'
-            if result.returncode != 0 or not pdf_path.exists():
-                QMessageBox.critical(self, 'Export PDF impossible', result.stdout[-1800:] or result.stderr[-1800:])
-                return
-            Path(filename).write_bytes(pdf_path.read_bytes())
-        self.statusBar().showMessage('PDF exporté', 4000)
-
-    def closeEvent(self, event) -> None:  # type: ignore[override]
-        self.repository.close()
-        event.accept()
+    def open_offer(self) -> None: OfferWizard(self.repository).exec()
+    def open_campaign(self) -> None: CampaignWizard(self.repository).exec()
+    def closeEvent(self, event) -> None: self.repository.close(); event.accept()
 
 
 def run() -> None:
-    application = QApplication(sys.argv)
-    application.setApplicationName('CVzzer Desktop')
-    window = MainWindow()
-    window.show()
-    sys.exit(application.exec())
+    app = QApplication(sys.argv); app.setApplicationName('CVzzer Desktop'); window = MainWindow(); window.show(); sys.exit(app.exec())
